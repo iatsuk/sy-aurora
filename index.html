@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="S/Y Aurora, Great Dane 28 hull 165. History, design philosophy, technical data, refit log, voyages, gallery and live position.">
+  <meta name="theme-color" content="#071b24">
+  <title>S/Y Aurora · Great Dane 28 · Hull 165</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Marcellus&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ3ynDgqZ+4IUN4qS0whxU6TS3MZas=" crossorigin="">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+  <script src="data/gallery-data.js" defer></script>
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header" data-header>
+    <a class="brand" href="#top" aria-label="Aurora, back to top">
+      <span class="brand-mark" aria-hidden="true">A</span>
+      <span><strong>AURORA</strong><small>Great Dane 28 · Hull 165</small></span>
+    </a>
+    <button class="menu-button" type="button" aria-expanded="false" aria-controls="site-nav" data-menu-button>Menu</button>
+    <nav id="site-nav" class="site-nav" aria-label="Main navigation" data-nav>
+      <a href="#story">Story</a>
+      <a href="#design">Design</a>
+      <a href="#aurora">Hull 165</a>
+      <a href="#refit">Refit</a>
+      <a href="#voyages">Voyages</a>
+      <a href="#gallery">Gallery</a>
+      <a href="#live">Live</a>
+    </nav>
+  </header>
+
+  <main id="main">
+    <section class="hero" id="top">
+      <div class="chart-grid" aria-hidden="true"></div>
+      <div class="hero-content">
+        <div class="hero-copy reveal">
+          <p class="eyebrow">1972 · Denmark · hull no. 165</p>
+          <h1>A small yacht built with the priorities of a much larger sea boat.</h1>
+          <p class="hero-lead">This is <strong>Aurora</strong>, my Great Dane 28. Four tonnes, 2.5 metres of beam, a long keel and a design lineage that runs from the Nordic Folkboat and Danish spidsgatter tradition into the early age of production GRP cruising yachts.</p>
+          <div class="hero-actions">
+            <a class="button button-primary" href="#story">Why Great Dane?</a>
+            <a class="button button-ghost" href="#live">Where is Aurora?</a>
+          </div>
+          <dl class="hero-facts">
+            <div><dt>8.50 m</dt><dd>length overall</dd></div>
+            <div><dt>≈ 4.0 t</dt><dd>displacement</dd></div>
+            <div><dt>1.8 t</dt><dd>lead ballast</dd></div>
+            <div><dt>2.50 m</dt><dd>beam</dd></div>
+          </dl>
+        </div>
+
+        <div class="hero-visual reveal" aria-label="Stylised profile of a Great Dane 28 under sail">
+          <div class="moon"></div>
+          <svg viewBox="0 0 940 650" role="img" aria-labelledby="aurora-svg-title aurora-svg-desc">
+            <title id="aurora-svg-title">Aurora, Great Dane 28</title>
+            <desc id="aurora-svg-desc">A classic narrow sailing yacht with a long keel and masthead rig, shown under sail.</desc>
+            <path class="sail sail-main" d="M470 86 L484 393 L720 393 Q616 243 470 86Z"/>
+            <path class="sail sail-jib" d="M458 114 L444 393 L238 393 Q322 240 458 114Z"/>
+            <path class="mast" d="M464 63 L471 428"/>
+            <path class="rig" d="M464 77 L222 405 M464 77 L737 405"/>
+            <path class="hull" d="M188 405 Q438 372 754 405 Q713 451 650 479 Q458 526 260 471 Q214 446 188 405Z"/>
+            <path class="keel" d="M366 463 Q392 542 478 562 Q557 554 601 469 Q547 490 473 495 Q413 491 366 463Z"/>
+            <path class="rudder" d="M681 442 Q706 475 696 526 Q667 513 653 476Z"/>
+            <path class="water-line" d="M112 505 Q226 477 333 505 T557 505 T820 505"/>
+            <text x="472" y="447" text-anchor="middle">AURORA</text>
+          </svg>
+          <p class="hero-caption">Great Dane 28 · designed by Aage Utzon with Klaus Baess</p>
+        </div>
+      </div>
+      <a class="scroll-hint" href="#story">From Folkboat to Aurora <span aria-hidden="true">↓</span></a>
+    </section>
+
+    <section class="section story-section" id="story">
+      <div class="section-heading reveal">
+        <p class="eyebrow">The lineage</p>
+        <h2>Not a small boat made bigger. A sea boat made small.</h2>
+        <p>Great Dane 28 appeared at a short historical moment when traditional Scandinavian ideas about seaworthiness met fibreglass production. Its proportions look conservative today because they were conservative on purpose.</p>
+      </div>
+
+      <div class="story-grid">
+        <article class="story-card reveal">
+          <span class="story-index">01</span>
+          <h3>Klaus Baess</h3>
+          <p>A Danish Dragon sailor and 1948 Olympic bronze medallist who turned North American contacts into a boat-export business. He sold Folkboats abroad, understood what owners actually bought and used, and later drove the production, deck, cockpit, interior and commercial concept of the Great Dane 28.</p>
+        </article>
+        <article class="story-card reveal">
+          <span class="story-index">02</span>
+          <h3>Aage Utzon</h3>
+          <p>Ship engineer and designer of Denmark’s celebrated spidsgatter yachts. According to his grandson Jan Utzon, Aage was responsible for the Great Dane’s hull, freeboard, keel and rudder: the part of the boat that meets the sea. He was also the father of Sydney Opera House architect Jørn Utzon.</p>
+        </article>
+        <article class="story-card reveal">
+          <span class="story-index">03</span>
+          <h3>Folkboat + Sisu</h3>
+          <p>The design was influenced by two different ancestors. The Nordic Folkboat contributed compact simplicity and fine lines; Utzon’s heavier <em>Sisu</em> spidsgatter contributed a philosophy of ballast, stability and security in rough weather. Great Dane kept the spirit, but used a transom stern.</p>
+        </article>
+      </div>
+
+      <div class="history-line reveal" aria-label="Great Dane 28 history timeline">
+        <div><strong>1948</strong><span>Baess wins Olympic bronze in the Dragon class and builds North American contacts.</span></div>
+        <div><strong>1950s</strong><span>Baess exports Folkboats and works with the heavier Utzon-designed Sisu.</span></div>
+        <div><strong>c. 1960</strong><span>A wooden Great Dane prototype is built before the design moves toward GRP production.</span></div>
+        <div><strong>1965–66</strong><span>Series production begins. Hand-laid GRP brings traditional hull thinking into a modern manufacturing process.</span></div>
+        <div><strong>1967</strong><span>Great Dane 28 reaches the London Boat Show and the UK market.</span></div>
+        <div><strong>1969</strong><span>Baess wins the Yachting World One-of-a-Kind Rally, an event judging cruising suitability among 25–30 ft yachts.</span></div>
+        <div><strong>1980</strong><span>After roughly 250 boats, Baess decides the model’s time has passed and the original moulds are destroyed.</span></div>
+      </div>
+    </section>
+
+    <section class="section philosophy-section" id="design">
+      <div class="section-heading reveal">
+        <p class="eyebrow">Design philosophy</p>
+        <h2>The compromises are the character.</h2>
+      </div>
+
+      <div class="philosophy-grid">
+        <article class="philosophy-card reveal">
+          <span>01</span><h3>Mass instead of nervousness</h3>
+          <p>About four tonnes on 28 ft is a lot. It means inertia: slower acceleration in light air, but less abrupt response to every short wave. The boat is intended to keep moving with composure rather than react instantly to everything around it.</p>
+        </article>
+        <article class="philosophy-card reveal">
+          <span>02</span><h3>Ballast instead of beam</h3>
+          <p>At only about 2.5 m wide, the hull does not create stability primarily through width. Roughly 1.8 tonnes of ballast sit low in the long keel. The result is a narrow, heavy and deliberately conservative package rather than a wide floating apartment.</p>
+        </article>
+        <article class="philosophy-card reveal">
+          <span>03</span><h3>Course-keeping over agility</h3>
+          <p>The long keel and transom-hung rudder favour directional stability and protected underwater gear. The price is predictable: more turning radius, less enthusiasm in reverse and a need to plan harbour manoeuvres before they become urgent.</p>
+        </article>
+        <article class="philosophy-card reveal">
+          <span>04</span><h3>Sea room over showroom</h3>
+          <p>A 2.5 m beam limits interior volume. That space was not “forgotten”; it was never the main objective. Great Dane prioritises a narrow hull, deep structural keel, restrained sail plan and manageable behaviour offshore.</p>
+        </article>
+      </div>
+
+      <blockquote class="manifesto reveal">
+        <p>Size may limit speed and comfort. It does not necessarily have to limit the sea.</p>
+      </blockquote>
+
+      <div class="specs-card reveal">
+        <div class="specs-intro">
+          <p class="eyebrow">Published design data</p>
+          <h3>Great Dane 28</h3>
+          <p>Different references quote displacement between about 3.85 and 4.2 tonnes. For practical discussion, this site uses “about 4 tonnes” rather than pretending the original displacement was more precise than the surviving records.</p>
+        </div>
+        <dl class="specs-grid">
+          <div><dt>LOA</dt><dd>8.50 m</dd></div>
+          <div><dt>LWL</dt><dd>6.45–6.50 m</dd></div>
+          <div><dt>Beam</dt><dd>2.49–2.50 m</dd></div>
+          <div><dt>Draft</dt><dd>≈ 1.4–1.45 m</dd></div>
+          <div><dt>Displacement</dt><dd>≈ 4.0 t</dd></div>
+          <div><dt>Ballast</dt><dd>1.8 t lead</dd></div>
+          <div><dt>Rig</dt><dd>Masthead sloop</dd></div>
+          <div><dt>Sail area</dt><dd>≈ 33–34 m²</dd></div>
+          <div><dt>Keel</dt><dd>Long keel</dd></div>
+          <div><dt>Rudder</dt><dd>Transom-hung</dd></div>
+          <div><dt>Construction</dt><dd>GRP</dd></div>
+          <div><dt>Headroom</dt><dd>≈ 1.8 m</dd></div>
+        </dl>
+      </div>
+    </section>
+
+    <section class="section comparison-section" id="comparison">
+      <div class="section-heading reveal">
+        <p class="eyebrow">Where it sits among Scandinavian classics</p>
+        <h2>Familiar ideas, unusually concentrated.</h2>
+        <p>No single Swedish boat is “the same” as a Great Dane 28. Laurin 28 is probably the closest technical relative; Storfidra shares the pocket-offshore philosophy; Vindö 32 and Hallberg-Rassy Monsun show how unusual it is to put nearly four tonnes into only 28 feet.</p>
+      </div>
+
+      <div class="table-wrap reveal" tabindex="0" aria-label="Comparison of Scandinavian classic yachts">
+        <table class="comparison-table">
+          <thead><tr><th>Boat</th><th>LOA</th><th>LWL</th><th>Beam</th><th>Displ.</th><th>Ballast</th><th>Draft</th><th>Keel</th><th>What it explains</th></tr></thead>
+          <tbody>
+            <tr class="highlight"><th>Great Dane 28</th><td>8.50</td><td>6.45</td><td>2.50</td><td>≈ 4.0 t</td><td>1.80 t</td><td>1.45</td><td>Long</td><td>The reference: very heavy and narrow for its length.</td></tr>
+            <tr><th>Laurin 28</th><td>8.34</td><td>7.32</td><td>2.50</td><td>3.30 t</td><td>1.60 t</td><td>1.35</td><td>Long</td><td>Closest geometry and philosophy, but lighter with a much longer waterline.</td></tr>
+            <tr><th>Storfidra 25</th><td>7.60</td><td>6.30</td><td>2.40</td><td>3.10 t</td><td>1.30 t</td><td>1.29</td><td>Long</td><td>The Swedish “small boat, big sea” idea in a shorter koster-stern hull.</td></tr>
+            <tr><th>Vindö 32</th><td>8.95</td><td>6.90</td><td>2.75</td><td>3.95 t</td><td>1.60 t</td><td>1.30</td><td>Long</td><td>Almost the same mass, but spread over a larger and wider hull.</td></tr>
+            <tr><th>HR Monsun 31</th><td>9.36</td><td>7.50</td><td>2.87</td><td>4.20 t</td><td>1.90 t</td><td>1.40</td><td>Long</td><td>A famous larger heavy cruiser with strikingly similar ballast and total mass.</td></tr>
+            <tr><th>Albin Vega</th><td>8.25</td><td>7.00</td><td>2.46</td><td>2.30 t</td><td>0.92 t</td><td>1.17</td><td>Long</td><td>Similar length and beam, but a dramatically lighter interpretation.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="data-note reveal">Dimensions are compiled from the Great Dane 28 Owners’ Club and Swedish Sailguide model records. They are useful for understanding design direction, not for handicapping or certification.</p>
+    </section>
+
+    <section class="section transition-section" id="transition">
+      <div class="section-heading reveal">
+        <p class="eyebrow">From Ohlson 29 to Great Dane 28</p>
+        <h2>I am not moving from 29 feet to 28. I am changing priorities.</h2>
+      </div>
+
+      <div class="transition-layout">
+        <div class="transition-copy reveal">
+          <p>My previous yacht, Ohlson 29 <strong>Rassvet</strong>, is close in length but belongs to a different branch of Scandinavian design: about 3.3 tonnes, 2.7 m wide, fin keel, more sail area relative to weight and a quicker response to wind and helm.</p>
+          <p>Great Dane should feel slower to accelerate, more reluctant to turn, less satisfying in very light wind and less cooperative in reverse. Tacks will reward preserved momentum instead of aggressive helm. Harbour manoeuvres will reward planning instead of correction.</p>
+          <p>But offshore those same traits change sign. Four tonnes carry momentum through short sea. A long keel resists yaw. A protected propeller aperture and keel-hung geometry reduce exposed underwater appendages. A windvane and tiller pilot can work with a boat that naturally wants to continue on course.</p>
+        </div>
+        <div class="trade-card reveal">
+          <div class="trade-heading"><span>Giving up</span><span>Gaining</span></div>
+          <div><span>Light-air responsiveness</span><span>Inertia in rough water</span></div>
+          <div><span>Quick tacks</span><span>Course stability</span></div>
+          <div><span>Easy reverse control</span><span>Protected underwater profile</span></div>
+          <div><span>More beam and interior volume</span><span>More ballast and conservative proportions</span></div>
+          <div><span>Short-passage speed</span><span>Lower workload offshore</span></div>
+        </div>
+      </div>
+      <p class="transition-note reveal">That is the point of the move: not a bigger yacht, but a platform better aligned with longer solo passages and northern offshore routes.</p>
+    </section>
+
+    <section class="section aurora-section" id="aurora">
+      <div class="section-heading reveal">
+        <p class="eyebrow">This boat</p>
+        <h2>Aurora · hull 165 · 1972</h2>
+        <p>The Great Dane register is incomplete, so this history records only points that can currently be supported by surviving public records and the boat’s recent documentation.</p>
+      </div>
+
+      <div class="identity-grid">
+        <div class="identity-card reveal">
+          <span class="identity-label">1972</span>
+          <h3>Hull and sail no. 165</h3>
+          <p>The Great Dane owners’ register lists the boat as a 1972 hull with hull number 165 and sail number 165.</p>
+        </div>
+        <div class="identity-card reveal">
+          <span class="identity-label">2009 record</span>
+          <h3>Katinka · Dragør</h3>
+          <p>A YachtDatabase owner record dated March 2009 identifies Great Dane 28 no. 165 as <strong>Katinka</strong>, owned by John Mathiesen and based in Dragør, Denmark.</p>
+        </div>
+        <div class="identity-card reveal">
+          <span class="identity-label">Later record</span>
+          <h3>Aurora · Vallensbæk</h3>
+          <p>The Great Dane owners’ club later lists hull 165 as <strong>Aurora</strong>, moored at Vallensbæk Havn under Jørn &amp; Alena Kragh.</p>
+        </div>
+        <div class="identity-card accent reveal">
+          <span class="identity-label">2026</span>
+          <h3>Aurora continues</h3>
+          <p>I bought the boat in 2026 and kept the name Aurora. This site will continue the record from here: refit work, passages, failures, fixes and what the design proves in actual use.</p>
+        </div>
+      </div>
+
+      <div class="current-specs reveal">
+        <div><span>Engine</span><strong>Yanmar 3GM30</strong><small>2003</small></div>
+        <div><span>Drive train</span><strong>Shaft / propeller / seal</strong><small>renewed 2026</small></div>
+        <div><span>Rigging</span><strong>Standing + running</strong><small>renewed 2025</small></div>
+        <div><span>Self steering</span><strong>Windvane</strong><small>installed 2024</small></div>
+        <div><span>AIS</span><strong>em-trak B924</strong><small>NMEA 0183 / 2000</small></div>
+        <div><span>Autopilot</span><strong>Raymarine ST2000+</strong><small>tiller pilot</small></div>
+      </div>
+    </section>
+
+    <section class="section refit-section" id="refit">
+      <div class="section-heading reveal">
+        <p class="eyebrow">Maintenance & upgrades</p>
+        <h2>A refit log that grows with the boat.</h2>
+        <p>The starting point is the seller’s maintenance record. New work will be added by year rather than disappearing into a list of “recent upgrades”.</p>
+      </div>
+
+      <div class="timeline">
+        <article class="timeline-year reveal">
+          <div class="year-marker"><span>2026</span></div>
+          <div class="year-content">
+            <h3>Drivetrain and engine installation</h3>
+            <ul>
+              <li>New engine mounts.</li>
+              <li>New propeller shaft.</li>
+              <li>New propeller.</li>
+              <li>New shaft seal / shaft penetration sealing.</li>
+              <li>Yanmar 3GM30 reported serviced according to schedule and starting immediately.</li>
+            </ul>
+          </div>
+        </article>
+        <article class="timeline-year reveal">
+          <div class="year-marker"><span>2025</span></div>
+          <div class="year-content">
+            <h3>Rig, seacocks and onboard systems</h3>
+            <ul>
+              <li>Standing rigging renewed.</li>
+              <li>Running rigging renewed.</li>
+              <li>Mast steps installed.</li>
+              <li>All seacocks replaced with bronze fittings.</li>
+              <li>New compressor for the refrigerator / cool box.</li>
+              <li>New freshwater pump.</li>
+              <li>New sprayhood and full boat cover.</li>
+              <li>Inspection hatch added to the diesel tank.</li>
+            </ul>
+          </div>
+        </article>
+        <article class="timeline-year reveal">
+          <div class="year-marker"><span>2024</span></div>
+          <div class="year-content">
+            <h3>Offshore autonomy and hull protection</h3>
+            <ul>
+              <li>New high-quality cabin mattresses.</li>
+              <li>Windvane self-steering installed.</li>
+              <li>Hull stripped and protected with new epoxy primer.</li>
+            </ul>
+          </div>
+        </article>
+        <article class="timeline-year reveal">
+          <div class="year-marker"><span>Recent</span></div>
+          <div class="year-content">
+            <h3>Energy and lighting</h3>
+            <ul>
+              <li>Solar panel and regulator installed.</li>
+              <li>LED lighting throughout the boat for low electrical consumption.</li>
+              <li>Mainsail approximately two years old at the time of sale in 2026.</li>
+              <li>Headsail approximately seven years old at the time of sale in 2026.</li>
+            </ul>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section voyages-section" id="voyages">
+      <div class="section-heading reveal">
+        <p class="eyebrow">Voyages</p>
+        <h2>The track log will become part of the boat’s history.</h2>
+        <p>GPX tracks can be dropped into the repository, simplified for the web and rendered here as an interactive archive. The original GPX remains untouched; only a lighter GeoJSON copy is published.</p>
+      </div>
+      <div class="voyage-layout">
+        <div id="voyage-map" class="map-panel reveal" aria-label="Map of Aurora voyages"></div>
+        <aside class="voyage-list reveal">
+          <div class="map-empty" data-map-empty>
+            <strong>No Aurora tracks published yet.</strong>
+            <p>Add GPX files to <code>tracks/source/</code> and rebuild <code>data/tracks.geojson</code>.</p>
+          </div>
+          <div data-voyage-items></div>
+        </aside>
+      </div>
+    </section>
+
+    <section class="section gallery-section" id="gallery">
+      <div class="section-heading reveal">
+        <p class="eyebrow">Gallery</p>
+        <h2>Photos, video and the details that matter later.</h2>
+        <p>The gallery accepts both images and video. It is intentionally organised as a boat archive rather than a social-media feed: exterior, deck, interior, systems, rig, underwater hull and passages.</p>
+      </div>
+      <div class="gallery-filters reveal" data-gallery-filters></div>
+      <div class="gallery-grid reveal" data-gallery-grid>
+        <div class="gallery-empty">
+          <strong>Gallery ready for Aurora media.</strong>
+          <p>Place files in <code>media/gallery/</code> and run <code>python3 tools/build_gallery.py</code>.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="section live-section" id="live">
+      <div class="section-heading reveal">
+        <p class="eyebrow">Live / latest known position</p>
+        <h2>Follow Aurora when she is underway.</h2>
+        <p>Garmin MapShare can be embedded directly in a static site, so the position below does not require a server. AIS and public channels remain one click away.</p>
+      </div>
+      <div class="live-layout">
+        <div class="inreach-frame reveal">
+          <iframe src="https://share.garmin.com/AS424" title="Aurora Garmin inReach MapShare" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+        </div>
+        <div class="live-card reveal">
+          <dl class="radio-details">
+            <div><dt>Call sign</dt><dd>DJ2996</dd></div>
+            <div><dt>MMSI</dt><dd>218032280</dd></div>
+            <div><dt>ATIS</dt><dd>9211102996</dd></div>
+          </dl>
+          <p class="live-note">The radio identifiers are being transferred to Aurora. External AIS services may temporarily continue to display the previous vessel name until their records update.</p>
+          <div class="link-stack">
+            <a href="https://www.marinetraffic.com/en/ais/details/ships/shipid:8833999/mmsi:218032280/imo:0/vessel:RASSVET" target="_blank" rel="noreferrer">MarineTraffic <span>↗</span></a>
+            <a href="https://share.garmin.com/AS424" target="_blank" rel="noreferrer">Garmin inReach MapShare <span>↗</span></a>
+            <a href="https://t.me/deelstuff" target="_blank" rel="noreferrer">Sailing blog · Deelstuff <span>↗</span></a>
+            <a href="https://t.me/deelstuff_live" target="_blank" rel="noreferrer">Live channel <span>↗</span></a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section sources-section" id="sources">
+      <div class="section-heading reveal">
+        <p class="eyebrow">Sources & useful links</p>
+        <h2>Where the history comes from.</h2>
+        <p>Great Dane records are distributed across an owners’ club, old boat databases, Scandinavian model archives and later reviews. Where sources disagree, this site keeps the uncertainty visible instead of silently choosing the neatest number.</p>
+      </div>
+      <div class="sources-grid reveal">
+        <a href="http://gd28.wikidot.com" target="_blank" rel="noreferrer"><strong>Great Dane 28 Owners’ Club</strong><span>History, design, boats, archives and owner knowledge.</span></a>
+        <a href="http://gd28.wikidot.com/history-design" target="_blank" rel="noreferrer"><strong>History & Design</strong><span>Origins, production history, specifications and period brochures.</span></a>
+        <a href="http://gd28.wikidot.com/boats" target="_blank" rel="noreferrer"><strong>Great Dane register</strong><span>Known hulls, names, locations and owners, including hull 165.</span></a>
+        <a href="https://www.yachtingmonthly.com/reviews/yacht-reviews/great-dane-28-used-boat-review" target="_blank" rel="noreferrer"><strong>Yachting Monthly review</strong><span>Modern review with historical context and sailing impressions.</span></a>
+        <a href="https://utzoncenter.dk/en/building-93" target="_blank" rel="noreferrer"><strong>Utzon Center</strong><span>Aage Utzon and the Danish spidsgatter tradition.</span></a>
+        <a href="https://minbaad.dk/nyhed/archive/2018/21/september/article/mindeord-great-dane-bygger-og-ol-bronzevinder-klaus-baess-er-gaaet-bort/" target="_blank" rel="noreferrer"><strong>Klaus Baess obituary</strong><span>Danish account of Baess, Roskilde Bådværft and the Great Dane story.</span></a>
+        <a href="https://www.sailguide.com/" target="_blank" rel="noreferrer"><strong>Sailguide</strong><span>Swedish design data used for comparative boats.</span></a>
+        <a href="https://www.yachtdatabase.com/en/showowner.jsp?id=55297" target="_blank" rel="noreferrer"><strong>Katinka / hull 165 record</strong><span>2009 record connecting sail no. 165 with the former name Katinka.</span></a>
+        <a href="https://support.garmin.com/en-US/?faq=tdlDCyo1fJ5UxjUbA9rMY8" target="_blank" rel="noreferrer"><strong>Garmin inReach KML feeds</strong><span>Documentation for future live-position integrations beyond the MapShare iframe.</span></a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div>
+      <strong>S/Y Aurora</strong>
+      <span>Great Dane 28 · hull 165 · 1972</span>
+    </div>
+    <p>A living technical and cruising record of one boat. Built for GitHub Pages, without a backend.</p>
+    <a href="#top">Back to top ↑</a>
+  </footer>
+
+  <dialog class="lightbox" data-lightbox>
+    <button type="button" class="lightbox-close" data-lightbox-close aria-label="Close gallery viewer">×</button>
+    <button type="button" class="lightbox-prev" data-lightbox-prev aria-label="Previous item">‹</button>
+    <div class="lightbox-stage" data-lightbox-stage></div>
+    <button type="button" class="lightbox-next" data-lightbox-next aria-label="Next item">›</button>
+    <div class="lightbox-caption" data-lightbox-caption></div>
+  </dialog>
+</body>
+</html>
