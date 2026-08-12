@@ -36,11 +36,34 @@
     const mapNode = document.querySelector('#voyage-map');
     if (!mapNode || !window.L) return;
 
-    const map = L.map(mapNode, { scrollWheelZoom: false, worldCopyJump: true }).setView([56.2, 10.7], 5);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const defaultView = { center: [56.2, 10.7], zoom: 5 };
+    const map = L.map(mapNode, {
+      zoomControl: true,
+      scrollWheelZoom: true,
+      worldCopyJump: true,
+      preferCanvas: true
+    }).setView(defaultView.center, defaultView.zoom);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
+      minZoom: 3,
+      updateWhenIdle: true,
+      keepBuffer: 3,
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
+
+    let allBounds = null;
+    const resetMap = () => {
+      if (allBounds?.isValid()) map.fitBounds(allBounds, { padding: [28, 28], maxZoom: 11 });
+      else map.setView(defaultView.center, defaultView.zoom);
+    };
+
+    document.querySelector('[data-map-zoom-in]')?.addEventListener('click', () => map.zoomIn());
+    document.querySelector('[data-map-zoom-out]')?.addEventListener('click', () => map.zoomOut());
+    document.querySelector('[data-map-reset]')?.addEventListener('click', resetMap);
+
+    requestAnimationFrame(() => map.invalidateSize(false));
+    window.setTimeout(() => map.invalidateSize(false), 250);
 
     try {
       const response = await fetch('data/tracks.geojson', { cache: 'no-store' });
@@ -64,12 +87,14 @@
         const distance = Number.isFinite(p.distance_nm) ? `${p.distance_nm.toFixed(1)} nm` : '';
         const dates = formatDateRange(p.start, p.end);
         item.innerHTML = `<button type="button"><strong>${escapeHtml(p.name || `Voyage ${index + 1}`)}</strong><span>${[dates, distance].filter(Boolean).join(' · ')}</span></button>`;
-        item.querySelector('button').addEventListener('click', () => map.fitBounds(layer.getBounds(), { padding: [24, 24] }));
+        item.querySelector('button').addEventListener('click', () => map.fitBounds(layer.getBounds(), { padding: [28, 28], maxZoom: 12 }));
         list?.appendChild(item);
       });
 
       const group = L.featureGroup(layers);
-      if (group.getBounds().isValid()) map.fitBounds(group.getBounds(), { padding: [24, 24] });
+      allBounds = group.getBounds();
+      resetMap();
+      window.setTimeout(() => map.invalidateSize(false), 100);
     } catch (error) {
       console.warn('Unable to load voyage archive', error);
     }

@@ -2,20 +2,18 @@
 
 Static GitHub Pages site for **S/Y Aurora**, a 1972 Great Dane 28, hull and sail no. **165**.
 
-The site is a long-term boat archive rather than a sale page. It documents the Great Dane 28 design and its Scandinavian context, the known history of hull 165, maintenance and upgrades, photographs and video, GPX voyage tracks, radio identifiers and live-position links.
+The site is a long-term boat archive rather than a sale page. It prioritises the living record of the yacht — current position, ownership, refit work, voyages and media — while keeping the Great Dane 28 design history and comparisons as reference material lower on the page.
 
 ## Site sections
 
-- Great Dane 28 origins: Klaus Baess, Aage Utzon, Folkboat and Sisu/spidsgatter lineage
-- design philosophy and technical specifications
-- comparisons with Laurin 28, Storfidra, Vindö 32, Hallberg-Rassy Monsun and Albin Vega
-- transition from the previous Ohlson 29 Rassvet
-- Aurora hull 165 history (including the documented former name `Katinka`)
-- maintenance and refit timeline
-- interactive voyage map built from GPX tracks
-- image/video gallery
-- Garmin inReach MapShare embed and MarineTraffic / Telegram links
-- primary historical sources and useful Great Dane links
+1. live / latest known position (AIS first, Garmin inReach as an offshore alternative)
+2. Aurora hull 165 ownership history and current equipment
+3. maintenance and refit timeline
+4. interactive voyage map built from GPX tracks
+5. image/video gallery
+6. transition from the previous Ohlson 29 Rassvet
+7. Great Dane 28 origins, philosophy, specifications and Scandinavian comparisons
+8. curated historical sources and useful links
 
 The site uses plain HTML, CSS and JavaScript. There is no application server, database, build framework or analytics dependency.
 
@@ -31,7 +29,7 @@ Then open `http://localhost:8000`.
 
 ## Add photographs and videos
 
-Put browser-friendly media under `media/gallery/`. Category folders are recommended:
+Put browser-friendly media under `media/gallery/`, preferably grouped by category:
 
 ```text
 media/gallery/
@@ -45,68 +43,46 @@ media/gallery/
   08-voyages/
 ```
 
-Then rebuild the manifest:
+Then run:
 
 ```bash
 python3 tools/build_gallery.py
 ```
 
-This scans JPG/JPEG, PNG, WebP, AVIF, MP4, WebM and OGV files and writes `data/gallery-data.js`. The website then renders filters, thumbnails/video previews and a full-screen viewer automatically.
-
-HEIC/HIF should be converted before publishing; keeping the public assets browser-native avoids requiring an image-processing toolchain on GitHub Pages.
+The script writes `data/gallery-data.js`, which drives gallery filters and the full-screen viewer.
 
 ## Add GPX voyages
 
-Keep original GPX files in `tracks/source/` and generate a light web representation:
+Keep original GPX files in `tracks/source/` and generate a lighter web representation:
 
 ```bash
 python3 tools/build_tracks.py --tolerance 20
 ```
 
-The script:
-
-1. reads GPX tracks (and routes as a fallback);
-2. calculates distance from the original points;
-3. keeps original start/end timestamps when present;
-4. simplifies geometry with Ramer-Douglas-Peucker;
-5. writes `data/tracks.geojson` for Leaflet.
-
-The tolerance is in metres. Dense Navionics tracks normally do not need every recorded point at passage-map zoom levels; `15–30 m` is a sensible starting range. The GPX source is never changed.
+The script calculates distance from the original geometry, preserves available dates and simplifies only the published geometry with Ramer-Douglas-Peucker. A tolerance around `15–30 m` is a useful starting point for dense Navionics tracks. The source GPX is never modified.
 
 ## Live position
 
-The page embeds Garmin MapShare directly:
+The page currently uses a VesselFinder AIS embed for MMSI `218032280` and links to MarineTraffic as a second public AIS source. Garmin MapShare remains available at `https://share.garmin.com/AS424` for satellite tracking when AIS coverage is absent.
 
-```text
-https://share.garmin.com/AS424
-```
-
-Garmin officially supports MapShare embedding in third-party pages. For a future custom map, Garmin also publishes an inReach KML feed for enabled MapShare accounts.
-
-AIS currently links to the MarineTraffic record associated with MMSI `218032280`. During the transfer of the radio licence, external AIS databases may still show the previous vessel name until their records update.
-
-Current identifiers shown on the site:
+Current identifiers:
 
 - Call sign: `DJ2996`
 - MMSI: `218032280`
 - ATIS: `9211102996`
 
+During the radio-licence transfer, external AIS databases may temporarily continue to show the previous vessel name.
+
+## Hull 165 ownership record used on the site
+
+- **1972 – June 2022:** `Katinka II`, Lene & John Mathiesen, Copenhagen, Denmark
+- **June 2022 – July 2026:** `Aurora`, Jørn & Alena Kragh, Copenhagen, Denmark
+- **July 2026 – present:** `Aurora`, Andrei Iatsuk, Kiel, Germany
+
 ## Historical data policy
 
-The Great Dane 28 surviving records are valuable but not perfectly consistent. The site therefore:
-
-- describes displacement as **about 4 t**, while noting published values around 3.85–4.2 t;
-- treats the owners' register as incomplete;
-- records only supported hull-165 history points rather than inventing continuous ownership;
-- links the primary source pages used for the historical narrative and comparisons.
-
-Known hull-165 points currently included:
-
-- 1972: Great Dane 28 hull/sail no. 165;
-- 2009 public record: `Katinka`, John Mathiesen, Dragør;
-- later Great Dane Owners' Club register: `Aurora`, Jørn & Alena Kragh, Vallensbæk Havn;
-- 2026: purchased by the present owner and the name `Aurora` retained.
+Surviving Great Dane 28 sources are useful but not perfectly consistent. The site therefore uses approximate language where appropriate — for example **about 4 t** displacement — and keeps a small curated source list rather than presenting every secondary database as equally useful.
 
 ## Deployment
 
-The repository is intended for GitHub Pages from the root of `main`. No `CNAME` is included yet, so it can initially use the normal `iatsuk.github.io/sy-aurora` project URL.
+The repository is intended for GitHub Pages from the root of `main`. No custom `CNAME` is included yet.

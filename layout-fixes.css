@@ -1,0 +1,177 @@
+/* Second-pass layout: prioritise the living boat record over static design history. */
+
+.live-first {
+  padding-top: clamp(4.5rem, 7vw, 7rem);
+  padding-bottom: clamp(4.5rem, 7vw, 7rem);
+}
+
+.live-layout-primary {
+  grid-template-columns: minmax(0, 1.5fr) minmax(280px, .5fr);
+  align-items: stretch;
+}
+
+.ais-frame {
+  position: relative;
+  min-height: 480px;
+  border-radius: 1.2rem;
+  overflow: hidden;
+  background: #d9e0dc;
+  border: 1px solid var(--dark-line);
+}
+
+.ais-frame iframe {
+  display: block;
+  width: 100%;
+  height: 480px;
+  border: 0;
+  background: #d9e0dc;
+}
+
+.embed-fallback {
+  position: absolute;
+  left: .8rem;
+  right: .8rem;
+  bottom: .8rem;
+  margin: 0;
+  padding: .55rem .75rem;
+  border-radius: .65rem;
+  background: rgba(7, 27, 36, .82);
+  color: rgba(255,255,255,.78);
+  font-size: .7rem;
+  backdrop-filter: blur(8px);
+}
+
+.embed-fallback a { color: var(--sand-soft); }
+.live-status-label { margin: 0 0 .25rem; text-transform: uppercase; letter-spacing: .12em; font-size: .65rem; color: rgba(255,255,255,.48); }
+
+.ownership-line {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.ownership-line article {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  padding: 1.4rem;
+  border: 1px solid var(--line);
+  border-radius: 1.15rem;
+  background: rgba(255,255,255,.38);
+}
+
+.ownership-line article > span {
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  font-size: .65rem;
+  color: #71848a;
+}
+
+.ownership-line h3 {
+  margin: auto 0 .7rem;
+  font: 1.7rem var(--serif);
+  color: var(--navy);
+}
+
+.ownership-line p { margin: 0; color: #576b72; }
+.ownership-line .current-owner { background: var(--teal); border-color: transparent; color: var(--white); }
+.ownership-line .current-owner > span,
+.ownership-line .current-owner p { color: rgba(255,255,255,.72); }
+.ownership-line .current-owner h3 { color: var(--white); }
+
+.compact-voyage-layout {
+  grid-template-columns: minmax(0, 1.45fr) minmax(260px, .55fr);
+  align-items: start;
+}
+
+.map-wrap {
+  position: relative;
+  height: 500px;
+  min-height: 0;
+}
+
+.map-panel {
+  height: 500px !important;
+  min-height: 0 !important;
+  max-height: 500px;
+}
+
+.voyage-list {
+  height: 500px;
+  max-height: 500px;
+}
+
+.map-toolbar {
+  position: absolute;
+  z-index: 900;
+  top: .75rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: .35rem;
+  padding: .3rem;
+  border-radius: 999px;
+  background: rgba(7, 27, 36, .88);
+  box-shadow: 0 8px 24px rgba(0,0,0,.2);
+  backdrop-filter: blur(10px);
+}
+
+.map-toolbar button {
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0 .75rem;
+  border: 0;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  color: var(--white);
+  cursor: pointer;
+  font-size: .75rem;
+}
+
+.map-toolbar button:first-child,
+.map-toolbar button:last-child {
+  font-size: 1.2rem;
+  padding: 0;
+}
+
+.map-toolbar button:hover { background: rgba(255,255,255,.18); }
+.leaflet-control-zoom { display: block !important; }
+.leaflet-container { background: #d7ddd9; }
+.leaflet-tile { image-rendering: auto; }
+
+.source-group {
+  min-height: 150px;
+  padding: 1.2rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: rgba(255,255,255,.34);
+}
+
+.source-group > strong { display: block; font: 1.1rem var(--serif); color: var(--navy); }
+.source-group > span { display: block; margin-top: .65rem; color: #667a80; font-size: .8rem; }
+.source-sublinks { display: flex; flex-wrap: wrap; gap: .45rem; margin-top: 1rem; }
+.source-sublinks a {
+  min-height: 0;
+  padding: .45rem .65rem;
+  border-radius: 999px;
+  background: rgba(7,27,36,.06);
+  font-size: .7rem;
+}
+
+@media (max-width: 1100px) {
+  .live-layout-primary,
+  .compact-voyage-layout { grid-template-columns: 1fr; }
+  .ownership-line { grid-template-columns: 1fr; }
+  .ownership-line article { min-height: 170px; }
+  .voyage-list { height: auto; max-height: 320px; }
+}
+
+@media (max-width: 700px) {
+  .ais-frame,
+  .ais-frame iframe { min-height: 390px; height: 390px; }
+  .map-wrap,
+  .map-panel { height: 390px !important; max-height: 390px; }
+  .map-toolbar { top: .55rem; }
+  .embed-fallback { position: static; border-radius: 0; }
+}
