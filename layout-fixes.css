@@ -5,13 +5,13 @@
   padding-bottom: clamp(4.5rem, 7vw, 7rem);
 }
 
+/* Keep the live section vertically compact: AIS first, metadata/links below. */
 .live-layout-primary {
-  grid-template-columns: minmax(0, 1.5fr) minmax(280px, .5fr);
+  grid-template-columns: 1fr;
   align-items: start;
+  gap: 1rem;
 }
 
-/* VesselFinder renders a compact embedded map. Keep the iframe itself compact
-   instead of stretching its viewport and exposing a dead grey lower area. */
 .ais-frame {
   position: relative;
   min-height: 0;
@@ -24,7 +24,7 @@
 .ais-frame iframe {
   display: block;
   width: 100%;
-  height: 330px;
+  height: 390px;
   min-height: 0;
   border: 0;
   background: #d9e0dc;
@@ -43,37 +43,70 @@
 .embed-fallback a { color: var(--sand-soft); }
 .live-status-label { margin: 0 0 .25rem; text-transform: uppercase; letter-spacing: .12em; font-size: .65rem; color: rgba(255,255,255,.48); }
 
-/* The hero now uses the supplied Great Dane engineering silhouette. Its tall
-   sail-plan aspect ratio is intentionally preserved rather than stretched to
-   fit the older wide illustration slot. */
+.live-layout-primary .live-card {
+  display: grid;
+  grid-template-columns: minmax(240px, .72fr) minmax(0, 1.28fr);
+  grid-template-rows: auto auto 1fr;
+  column-gap: 1.5rem;
+  align-items: start;
+}
+.live-layout-primary .live-status-label { grid-column: 1; grid-row: 1; }
+.live-layout-primary .radio-details { grid-column: 1; grid-row: 2; }
+.live-layout-primary .live-note { grid-column: 1; grid-row: 3; margin-bottom: 0; }
+.live-layout-primary .link-stack {
+  grid-column: 2;
+  grid-row: 1 / 4;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-content: start;
+}
+
+/* The supplied Great Dane engineering silhouette stays fully inside its slot.
+   The repeated technical caption under it is intentionally hidden. */
 .hero-visual > svg { display: none; }
 .hero-visual::after {
   content: "";
   position: absolute;
   z-index: 2;
-  inset: -1.5rem -2rem .2rem;
-  background: url("hero-aurora.svg") center bottom / auto 106% no-repeat;
+  inset: .6rem -.4rem 1.2rem;
+  background: url("hero-aurora.svg") center / auto 96% no-repeat;
   filter: drop-shadow(0 22px 28px rgba(0,0,0,.22));
   pointer-events: none;
 }
 .hero-visual .moon { z-index: 1; }
-.hero-visual .hero-caption { z-index: 3; }
+.hero-visual .hero-caption { display: none; }
 
+/* Presentation-style ownership flow: each owner feeds visually into the next. */
 .ownership-line {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 1rem;
+  gap: 0;
   margin-bottom: 1rem;
+  filter: drop-shadow(0 10px 24px rgba(7,27,36,.08));
 }
 
 .ownership-line article {
+  --arrow: 34px;
   min-height: 220px;
   display: flex;
   flex-direction: column;
-  padding: 1.4rem;
-  border: 1px solid var(--line);
-  border-radius: 1.15rem;
-  background: rgba(255,255,255,.38);
+  padding: 1.5rem calc(1.5rem + var(--arrow)) 1.5rem 1.5rem;
+  border: 0;
+  border-radius: 0;
+  background: #eee8dc;
+  clip-path: polygon(0 0, calc(100% - var(--arrow)) 0, 100% 50%, calc(100% - var(--arrow)) 100%, 0 100%);
+}
+
+.ownership-line article + article {
+  margin-left: calc(var(--arrow) * -1);
+  padding-left: calc(1.5rem + var(--arrow) * 1.35);
+  clip-path: polygon(var(--arrow) 0, calc(100% - var(--arrow)) 0, 100% 50%, calc(100% - var(--arrow)) 100%, var(--arrow) 100%, 0 50%);
+  background: #e2dacb;
+}
+
+.ownership-line article:last-child {
+  padding-right: 1.5rem;
+  clip-path: polygon(var(--arrow) 0, 100% 0, 100% 100%, var(--arrow) 100%, 0 50%);
 }
 
 .ownership-line article > span {
@@ -90,7 +123,7 @@
 }
 
 .ownership-line p { margin: 0; color: #576b72; }
-.ownership-line .current-owner { background: var(--teal); border-color: transparent; color: var(--white); }
+.ownership-line .current-owner { background: var(--teal); color: var(--white); }
 .ownership-line .current-owner > span,
 .ownership-line .current-owner p { color: rgba(255,255,255,.72); }
 .ownership-line .current-owner h3 { color: var(--white); }
@@ -99,6 +132,50 @@
   grid-template-columns: minmax(0, 1.45fr) minmax(260px, .55fr);
   align-items: start;
 }
+
+/* Leaflet fallback core rules. These intentionally duplicate the positioning
+   essentials so the map remains correct even if the remote Leaflet stylesheet
+   is rejected before the corrected stylesheet is reloaded by script.js. */
+.leaflet-pane,
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow,
+.leaflet-tile-container,
+.leaflet-pane > svg,
+.leaflet-pane > canvas,
+.leaflet-zoom-box {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+.leaflet-container { overflow: hidden; outline-offset: 1px; }
+.leaflet-tile,
+.leaflet-marker-icon,
+.leaflet-marker-shadow { user-select: none; -webkit-user-drag: none; }
+.leaflet-tile { visibility: hidden; }
+.leaflet-tile-loaded { visibility: inherit; }
+.leaflet-pane { z-index: 400; }
+.leaflet-tile-pane { z-index: 200; }
+.leaflet-overlay-pane { z-index: 400; }
+.leaflet-shadow-pane { z-index: 500; }
+.leaflet-marker-pane { z-index: 600; }
+.leaflet-tooltip-pane { z-index: 650; }
+.leaflet-popup-pane { z-index: 700; }
+.leaflet-map-pane canvas { z-index: 100; }
+.leaflet-map-pane svg { z-index: 200; }
+.leaflet-control { position: relative; z-index: 800; pointer-events: auto; }
+.leaflet-top,
+.leaflet-bottom { position: absolute; z-index: 1000; pointer-events: none; }
+.leaflet-top { top: 0; }
+.leaflet-right { right: 0; }
+.leaflet-bottom { bottom: 0; }
+.leaflet-left { left: 0; }
+.leaflet-control { float: left; clear: both; }
+.leaflet-right .leaflet-control { float: right; }
+.leaflet-top .leaflet-control { margin-top: 10px; }
+.leaflet-bottom .leaflet-control { margin-bottom: 10px; }
+.leaflet-left .leaflet-control { margin-left: 10px; }
+.leaflet-right .leaflet-control { margin-right: 10px; }
 
 /* Leaflet uses transforms internally. Do not animate/transform its ancestor:
    Safari can otherwise composite old tile positions during zoom. */
@@ -196,18 +273,38 @@
 }
 
 @media (max-width: 1100px) {
-  .live-layout-primary,
   .compact-voyage-layout { grid-template-columns: 1fr; }
-  .ownership-line { grid-template-columns: 1fr; }
-  .ownership-line article { min-height: 170px; }
+  .live-layout-primary .live-card { grid-template-columns: 1fr; }
+  .live-layout-primary .live-status-label,
+  .live-layout-primary .radio-details,
+  .live-layout-primary .live-note,
+  .live-layout-primary .link-stack { grid-column: 1; grid-row: auto; }
+  .live-layout-primary .link-stack { margin-top: .8rem; }
+
+  .ownership-line {
+    grid-template-columns: 1fr;
+    gap: .7rem;
+    filter: none;
+  }
+  .ownership-line article,
+  .ownership-line article + article,
+  .ownership-line article:last-child {
+    min-height: 170px;
+    margin-left: 0;
+    padding: 1.4rem;
+    border-radius: 1rem;
+    clip-path: none;
+  }
   .voyage-list { height: auto; max-height: 320px; }
 }
 
 @media (max-width: 700px) {
   .ais-frame iframe { height: 300px; }
+  .live-layout-primary .link-stack { grid-template-columns: 1fr; }
+  .hero-visual { min-height: 330px; }
   .hero-visual::after {
-    inset: -1rem -2.4rem 0;
-    background-size: auto 102%;
+    inset: 1.3rem 0 1.2rem;
+    background-size: contain;
   }
   .map-wrap,
   .map-wrap.reveal,

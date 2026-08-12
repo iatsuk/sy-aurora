@@ -30,7 +30,7 @@
   document.querySelectorAll('.reveal').forEach((el) => observer ? observer.observe(el) : el.classList.add('visible'));
 
   addFooterOwner();
-  initVoyageMapWhenVisible();
+  repairLeafletStylesheet().finally(initVoyageMapWhenVisible);
   initGallery();
 
   function addFooterOwner() {
@@ -40,6 +40,29 @@
     owner.className = 'footer-owner';
     owner.textContent = 'Andrei Iatsuk';
     footerIdentity.appendChild(owner);
+  }
+
+  function repairLeafletStylesheet() {
+    const href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    const integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
+    const oldLink = [...document.querySelectorAll('link[rel="stylesheet"]')]
+      .find((link) => link.href.startsWith(href));
+
+    if (oldLink?.integrity === integrity) return Promise.resolve();
+    oldLink?.remove();
+
+    return new Promise((resolve) => {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = href;
+      link.integrity = integrity;
+      link.crossOrigin = 'anonymous';
+      link.dataset.leafletRepair = 'true';
+      link.addEventListener('load', resolve, { once: true });
+      link.addEventListener('error', resolve, { once: true });
+      document.head.appendChild(link);
+      window.setTimeout(resolve, 1800);
+    });
   }
 
   function initVoyageMapWhenVisible() {
