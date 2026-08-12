@@ -1,5 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#071b24"/>
-  <path d="M14 44c13-2 23-2 36 0-4 7-10 10-18 10S18 51 14 44Z" fill="#d6b77a"/>
-  <path d="M31 11v31M30 13 18 38h12M33 15l14 23H33" stroke="#f3efe6" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Aurora · Great Dane 28">
+  <rect width="128" height="128" rx="26" fill="#071b24"/>
+
+  <!-- Great Dane 28 sail plan, simplified from the supplied silhouette. -->
+  <path d="M61 8 C51 22 39 55 28 83 H61 Z" fill="#f3efe6"/>
+  <path d="M67 10 L108 83 L70 77 C71 56 70 31 67 10 Z" fill="#f3efe6"/>
+  <rect x="63" y="7" width="3" height="80" rx="1.5" fill="#d6b77a"/>
+
+  <!-- Long-keel hull and keel-hung rudder kept as one strong favicon shape. -->
+  <path d="M16 84 L20 88 C25 89 34 89 41 89 L43 82 H69 L73 85 C87 86 101 84 113 82 C108 90 101 97 91 101 C85 104 80 105 76 111 C73 115 69 117 64 117 C52 118 42 118 34 115 C27 112 22 108 19 103 C16 98 15 91 16 84 Z" fill="#d6b77a"/>
+
+  <!-- Small dark cut keeps the long keel readable at favicon sizes. -->
+  <path d="M35 101 C46 103 59 103 71 101 C69 108 66 112 61 114 C51 115 43 114 38 111 C36 108 35 105 35 101 Z" fill="#214651"/>
 </svg>
