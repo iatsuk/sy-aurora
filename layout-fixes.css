@@ -1,4 +1,4 @@
-/* Second-pass layout: prioritise the living boat record over static design history. */
+/* Living-boat layout fixes and stability overrides. */
 
 .live-first {
   padding-top: clamp(4.5rem, 7vw, 7rem);
@@ -7,42 +7,57 @@
 
 .live-layout-primary {
   grid-template-columns: minmax(0, 1.5fr) minmax(280px, .5fr);
-  align-items: stretch;
+  align-items: start;
 }
 
+/* VesselFinder renders a compact embedded map. Keep the iframe itself compact
+   instead of stretching its viewport and exposing a dead grey lower area. */
 .ais-frame {
   position: relative;
-  min-height: 480px;
+  min-height: 0;
   border-radius: 1.2rem;
   overflow: hidden;
-  background: #d9e0dc;
+  background: #0b2630;
   border: 1px solid var(--dark-line);
 }
 
 .ais-frame iframe {
   display: block;
   width: 100%;
-  height: 480px;
+  height: 330px;
+  min-height: 0;
   border: 0;
   background: #d9e0dc;
 }
 
 .embed-fallback {
-  position: absolute;
-  left: .8rem;
-  right: .8rem;
-  bottom: .8rem;
+  position: static;
   margin: 0;
-  padding: .55rem .75rem;
-  border-radius: .65rem;
-  background: rgba(7, 27, 36, .82);
+  padding: .65rem .8rem;
+  border-radius: 0;
+  background: rgba(7, 27, 36, .96);
   color: rgba(255,255,255,.78);
   font-size: .7rem;
-  backdrop-filter: blur(8px);
 }
 
 .embed-fallback a { color: var(--sand-soft); }
 .live-status-label { margin: 0 0 .25rem; text-transform: uppercase; letter-spacing: .12em; font-size: .65rem; color: rgba(255,255,255,.48); }
+
+/* The hero now uses the supplied Great Dane engineering silhouette. Its tall
+   sail-plan aspect ratio is intentionally preserved rather than stretched to
+   fit the older wide illustration slot. */
+.hero-visual > svg { display: none; }
+.hero-visual::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  inset: -1.5rem -2rem .2rem;
+  background: url("hero-aurora.svg") center bottom / auto 106% no-repeat;
+  filter: drop-shadow(0 22px 28px rgba(0,0,0,.22));
+  pointer-events: none;
+}
+.hero-visual .moon { z-index: 1; }
+.hero-visual .hero-caption { z-index: 3; }
 
 .ownership-line {
   display: grid;
@@ -85,16 +100,24 @@
   align-items: start;
 }
 
-.map-wrap {
+/* Leaflet uses transforms internally. Do not animate/transform its ancestor:
+   Safari can otherwise composite old tile positions during zoom. */
+.map-wrap,
+.map-wrap.reveal,
+.map-wrap.reveal.visible {
   position: relative;
   height: 500px;
   min-height: 0;
+  opacity: 1;
+  transform: none;
+  transition: none;
 }
 
 .map-panel {
   height: 500px !important;
   min-height: 0 !important;
   max-height: 500px;
+  isolation: isolate;
 }
 
 .voyage-list {
@@ -136,9 +159,14 @@
 }
 
 .map-toolbar button:hover { background: rgba(255,255,255,.18); }
-.leaflet-control-zoom { display: block !important; }
+.leaflet-control-zoom { display: none !important; }
 .leaflet-container { background: #d7ddd9; }
-.leaflet-tile { image-rendering: auto; }
+.leaflet-tile {
+  image-rendering: auto;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+.leaflet-zoom-animated { transition: none !important; }
 
 .source-group {
   min-height: 150px;
@@ -159,6 +187,14 @@
   font-size: .7rem;
 }
 
+.footer-owner {
+  margin-top: .3rem;
+  color: var(--sand-soft) !important;
+  font-size: .72rem;
+  letter-spacing: .04em;
+  text-transform: none;
+}
+
 @media (max-width: 1100px) {
   .live-layout-primary,
   .compact-voyage-layout { grid-template-columns: 1fr; }
@@ -168,10 +204,14 @@
 }
 
 @media (max-width: 700px) {
-  .ais-frame,
-  .ais-frame iframe { min-height: 390px; height: 390px; }
+  .ais-frame iframe { height: 300px; }
+  .hero-visual::after {
+    inset: -1rem -2.4rem 0;
+    background-size: auto 102%;
+  }
   .map-wrap,
+  .map-wrap.reveal,
+  .map-wrap.reveal.visible,
   .map-panel { height: 390px !important; max-height: 390px; }
   .map-toolbar { top: .55rem; }
-  .embed-fallback { position: static; border-radius: 0; }
 }

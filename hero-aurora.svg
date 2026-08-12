@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="120 110 1170 1590" preserveAspectRatio="xMidYMid meet" role="img" aria-labelledby="title desc">
+  <title id="title">Great Dane 28 profile</title>
+  <desc id="desc">Side elevation of a Great Dane 28 with masthead sloop rig and continuous long keel, adapted from the supplied engineering silhouette for the Aurora website.</desc>
+
+  <defs>
+    <linearGradient id="sailFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f8f3e9" stop-opacity="0.94"/>
+      <stop offset="1" stop-color="#e8dec9" stop-opacity="0.86"/>
+    </linearGradient>
+    <linearGradient id="topsidesFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e5d4ae"/>
+      <stop offset="1" stop-color="#cdb98d"/>
+    </linearGradient>
+    <linearGradient id="underwaterFill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#244c55"/>
+      <stop offset="1" stop-color="#15323c"/>
+    </linearGradient>
+
+    <path id="hullProfile" d="M 172 1368
+       L 192 1386
+       C 257 1391, 357 1395, 475 1394
+       L 493 1305
+       L 780 1307
+       L 794 1321
+       L 865 1321
+       L 891 1335
+       L 962 1339
+       L 992 1361
+       C 1077 1358, 1162 1351, 1240 1345
+       C 1219 1377, 1191 1414, 1155 1446
+       C 1112 1484, 1050 1516, 986 1534
+       C 950 1545, 918 1555, 891 1563
+       C 861 1573, 842 1593, 822 1611
+       C 804 1627, 789 1634, 772 1635
+       C 669 1644, 548 1648, 439 1643
+       C 398 1640, 365 1627, 336 1609
+       C 295 1585, 260 1557, 237 1522
+       C 218 1492, 207 1458, 202 1433
+       C 196 1408, 172 1400, 172 1380
+       L 172 1368 Z"/>
+    <clipPath id="hullClip">
+      <use href="#hullProfile"/>
+    </clipPath>
+  </defs>
+
+  <!-- Original sail geometry, recoloured for the dark Aurora hero. -->
+  <g fill="url(#sailFill)" stroke="#f8f3e9" stroke-opacity="0.84" stroke-width="4" stroke-linejoin="round">
+    <path d="M 762 176 C 645 354, 491 901, 312 1354 L 761 1358 Z"/>
+    <path d="M 796 196 L 1213 1355 L 826 1274 C 835 1000, 823 595, 796 196 Z"/>
+  </g>
+
+  <!-- Original mast and boom. -->
+  <rect x="775" y="151" width="15" height="1278" rx="4" fill="#d6b77a"/>
+  <rect x="307" y="1353" width="475" height="13" rx="4" fill="#d6b77a"/>
+
+  <!-- Original complete engineering profile. Geometry is intentionally unchanged. -->
+  <use href="#hullProfile" fill="url(#topsidesFill)"/>
+  <rect x="130" y="1462" width="1160" height="250" fill="url(#underwaterFill)" clip-path="url(#hullClip)"/>
+  <use href="#hullProfile" fill="none" stroke="#f0e7d4" stroke-width="4" stroke-linejoin="round"/>
+
+  <!-- Subtle boot-top used only to separate hull and underwater body on the website. -->
+  <path d="M 206 1460 C 370 1466, 560 1466, 742 1459 C 906 1453, 1046 1440, 1157 1427"
+        fill="none" stroke="#d6b77a" stroke-width="3" stroke-linecap="round" opacity="0.72"/>
+
+  <!-- Original engineering cue at the keel / rudder junction. -->
+  <path d="M 338 1534 C 371 1565, 405 1608, 438 1641"
+        fill="none" stroke="#9aacaa" stroke-width="7" stroke-linecap="round" opacity="0.82"/>
+</svg>
