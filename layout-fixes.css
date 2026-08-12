@@ -76,8 +76,10 @@
 .hero-visual .moon { z-index: 1; }
 .hero-visual .hero-caption { display: none; }
 
-/* Presentation-style ownership flow: each owner feeds visually into the next. */
+/* Presentation-style ownership flow. Only outgoing arrowheads point right;
+   later cards simply make room for the incoming arrow from the previous owner. */
 .ownership-line {
+  --arrow: 34px;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0;
@@ -86,27 +88,46 @@
 }
 
 .ownership-line article {
-  --arrow: 34px;
+  position: relative;
+  z-index: 3;
   min-height: 220px;
   display: flex;
   flex-direction: column;
   padding: 1.5rem calc(1.5rem + var(--arrow)) 1.5rem 1.5rem;
   border: 0;
-  border-radius: 0;
+  border-radius: 1.1rem 0 0 1.1rem;
   background: #eee8dc;
-  clip-path: polygon(0 0, calc(100% - var(--arrow)) 0, 100% 50%, calc(100% - var(--arrow)) 100%, 0 100%);
 }
 
-.ownership-line article + article {
-  margin-left: calc(var(--arrow) * -1);
-  padding-left: calc(1.5rem + var(--arrow) * 1.35);
-  clip-path: polygon(var(--arrow) 0, calc(100% - var(--arrow)) 0, 100% 50%, calc(100% - var(--arrow)) 100%, var(--arrow) 100%, 0 50%);
+.ownership-line article:nth-child(2) {
+  z-index: 2;
+  padding-left: calc(1.5rem + var(--arrow));
   background: #e2dacb;
+  border-radius: 0;
 }
 
 .ownership-line article:last-child {
+  z-index: 1;
+  padding-left: calc(1.5rem + var(--arrow));
   padding-right: 1.5rem;
-  clip-path: polygon(var(--arrow) 0, 100% 0, 100% 100%, var(--arrow) 100%, 0 50%);
+  border-radius: 0 1.1rem 1.1rem 0;
+}
+
+.ownership-line article:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  right: calc(var(--arrow) * -1);
+  width: var(--arrow);
+  height: 100%;
+  background: inherit;
+  clip-path: polygon(0 0, 100% 50%, 0 100%);
+  pointer-events: none;
+}
+
+.ownership-line article + article {
+  margin-left: 0;
 }
 
 .ownership-line article > span {
@@ -264,8 +285,9 @@
   font-size: .7rem;
 }
 
+/* The owner is injected as a separate span; give it a visible separator. */
+.footer-owner::before { content: " · "; }
 .footer-owner {
-  margin-top: .3rem;
   color: var(--sand-soft) !important;
   font-size: .72rem;
   letter-spacing: .04em;
@@ -287,14 +309,14 @@
     filter: none;
   }
   .ownership-line article,
-  .ownership-line article + article,
+  .ownership-line article:nth-child(2),
   .ownership-line article:last-child {
     min-height: 170px;
     margin-left: 0;
     padding: 1.4rem;
     border-radius: 1rem;
-    clip-path: none;
   }
+  .ownership-line article::after { display: none; }
   .voyage-list { height: auto; max-height: 320px; }
 }
 
