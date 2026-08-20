@@ -145,16 +145,21 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 .year-content li + li { margin-top: .45rem; }
 
 .voyage-layout, .live-layout { display: grid; grid-template-columns: 1.35fr .65fr; gap: 1rem; }
-.map-panel { min-height: 560px; border-radius: 1.3rem; overflow: hidden; background: #d7ddd9; box-shadow: inset 0 0 0 1px var(--line); }
+.map-panel { min-height: 560px; border: 1px solid var(--line); border-radius: 1.3rem; overflow: hidden; background: #d7ddd9; }
 .leaflet-container { font-family: var(--sans); }
 .voyage-list { border: 1px solid var(--line); border-radius: 1.3rem; background: rgba(255,255,255,.36); padding: 1rem; max-height: 560px; overflow: auto; }
 .map-empty { padding: 1rem; color: #5a6c72; }
 .map-empty strong { display: block; color: var(--navy); font: 1.25rem var(--serif); }
-.voyage-item { padding: 1rem; border-bottom: 1px solid var(--line); }
+.voyage-item { padding: 1rem; border-bottom: 1px solid var(--line); border-radius: .85rem; transition: background .2s ease, box-shadow .2s ease; }
 .voyage-item:last-child { border-bottom: 0; }
 .voyage-item button { width: 100%; text-align: left; border: 0; background: transparent; padding: 0; cursor: pointer; color: inherit; }
 .voyage-item strong { display: block; font: 1.1rem var(--serif); }
 .voyage-item span { display: block; margin-top: .3rem; font-size: .72rem; color: #6a7d82; }
+.voyage-card-link { display: inline-block; margin-top: .7rem; color: var(--teal); font-size: .68rem; font-weight: 700; letter-spacing: .04em; text-decoration: none; }
+.voyage-card-link:hover { color: #8c4f3f; }
+.voyage-item:hover { background: rgba(47,111,115,.07); }
+.voyage-item.active { background: rgba(140,79,63,.1); box-shadow: inset 3px 0 #8c4f3f; }
+.voyage-item.active strong { color: #8c4f3f; }
 
 .gallery-filters { display: flex; flex-wrap: wrap; gap: .6rem; margin-bottom: 1rem; }
 .gallery-filter { border: 1px solid var(--line); background: transparent; border-radius: 999px; padding: .55rem .9rem; color: #53686e; cursor: pointer; font-size: .74rem; }

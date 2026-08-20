@@ -2,7 +2,9 @@
 """Convert dense GPX tracks to lightweight GeoJSON for the Aurora website.
 
 The source GPX is never modified. Each track segment is simplified using
-Ramer-Douglas-Peucker with a tolerance expressed in metres.
+Ramer-Douglas-Peucker with a tolerance expressed in metres. Distance, elapsed
+time and UTC noon positions are calculated from the original geometry before
+the published line is simplified.
 """
 
 from __future__ import annotations
@@ -10,9 +12,10 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import statistics
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Iterable
 
@@ -36,6 +39,13 @@ def haversine_m(a: Point, b: Point) -> float:
     dlon = math.radians(b.lon - a.lon)
     h = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
     return 2 * EARTH_RADIUS_M * math.asin(min(1.0, math.sqrt(h)))
+
+
+def cumulative_distances_m(points: list[Point]) -> list[float]:
+    distances = [0.0]
+    for previous, current in zip(points, points[1:]):
+        distances.append(distances[-1] + haversine_m(previous, current))
+    return distances
 
 
 def planar_xy(point: Point, lat0_rad: float) -> tuple[float, float]:
@@ -117,28 +127,106 @@ def parse_gpx(path: Path) -> list[tuple[str, list[Point]]]:
     return tracks
 
 
-def parse_time(value: str | None) -> str | None:
+def parse_datetime(value: str | None) -> datetime | None:
     if not value:
         return None
     try:
-        datetime.fromisoformat(value.replace("Z", "+00:00"))
-        return value
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
-        return value
+        return None
+    if parsed.tzinfo is None:
+        parsed = parsed.replace(tzinfo=timezone.utc)
+    return parsed.astimezone(timezone.utc)
+
+
+def format_utc(value: datetime) -> str:
+    return value.astimezone(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+
+def interpolate_point_at_distance(points: list[Point], cumulative_m: list[float], target_m: float) -> Point:
+    if target_m <= 0:
+        return points[0]
+    if target_m >= cumulative_m[-1]:
+        return points[-1]
+
+    for index in range(1, len(points)):
+        if cumulative_m[index] < target_m:
+            continue
+        segment_m = cumulative_m[index] - cumulative_m[index - 1]
+        if segment_m <= 0:
+            return points[index]
+        fraction = (target_m - cumulative_m[index - 1]) / segment_m
+        start, end = points[index - 1], points[index]
+        lon_delta = (end.lon - start.lon + 180.0) % 360.0 - 180.0
+        lon = (start.lon + lon_delta * fraction + 180.0) % 360.0 - 180.0
+        return Point(
+            lat=start.lat + (end.lat - start.lat) * fraction,
+            lon=lon,
+        )
+    return points[-1]
+
+
+def timing_properties(
+    points: list[Point],
+    cumulative_m: list[float],
+) -> tuple[str | None, str | None, float | None, list[dict]]:
+    timed = [(index, parsed) for index, point in enumerate(points) if (parsed := parse_datetime(point.time))]
+    if not timed:
+        return None, None, None, []
+
+    start = timed[0][1]
+    end = timed[-1][1]
+    duration_hours = round((end - start).total_seconds() / 3600.0, 2) if end >= start else None
+    marks = []
+
+    if len(timed) >= 2 and end > start:
+        intervals = [
+            (current_time - previous_time).total_seconds()
+            for (_, previous_time), (_, current_time) in zip(timed, timed[1:])
+            if current_time > previous_time
+        ]
+        typical_interval = statistics.median(intervals) if intervals else 0
+        max_interpolation_gap = min(max(typical_interval * 6, 3600), 21600)
+        target = datetime.combine(start.date(), time(hour=12), tzinfo=timezone.utc)
+        if target <= start:
+            target += timedelta(days=1)
+
+        while target < end:
+            for (start_index, start_time), (end_index, end_time) in zip(timed, timed[1:]):
+                if end_time <= start_time or not start_time <= target <= end_time:
+                    continue
+                interval_seconds = (end_time - start_time).total_seconds()
+                if target not in (start_time, end_time) and interval_seconds > max_interpolation_gap:
+                    break
+                fraction = (target - start_time).total_seconds() / interval_seconds
+                target_m = cumulative_m[start_index] + fraction * (cumulative_m[end_index] - cumulative_m[start_index])
+                position = interpolate_point_at_distance(points, cumulative_m, target_m)
+                marks.append({
+                    "time": format_utc(target),
+                    "coordinates": [round(position.lon, 6), round(position.lat, 6)],
+                    "distance_nm": round(target_m / NM_M, 2),
+                })
+                break
+            target += timedelta(days=1)
+
+    return format_utc(start), format_utc(end), duration_hours, marks
 
 
 def build_feature(name: str, points: list[Point], tolerance_m: float, source: Path) -> dict:
     simplified = rdp(points, tolerance_m)
-    distance_m = sum(haversine_m(a, b) for a, b in zip(points, points[1:]))
-    timed = [p.time for p in points if p.time]
+    cumulative_m = cumulative_distances_m(points)
+    distance_m = cumulative_m[-1]
+    start, end, duration_hours, day_marks = timing_properties(points, cumulative_m)
     return {
         "type": "Feature",
         "properties": {
             "name": name,
             "source": source.name,
-            "start": parse_time(timed[0]) if timed else None,
-            "end": parse_time(timed[-1]) if timed else None,
+            "start": start,
+            "end": end,
             "distance_nm": round(distance_m / NM_M, 2),
+            "duration_hours": duration_hours,
+            "day_marks": day_marks,
             "original_points": len(points),
             "simplified_points": len(simplified),
             "tolerance_m": tolerance_m,

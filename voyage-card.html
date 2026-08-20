@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#071b24">
+  <title>Aurora voyage card</title>
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Marcellus&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="anonymous">
+  <link rel="stylesheet" href="voyage-card.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="anonymous" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" defer></script>
+  <script src="voyage-card.js" defer></script>
+</head>
+<body>
+  <header class="export-toolbar" aria-label="Voyage card controls">
+    <a class="back-link" href="index.html#voyages">← Voyage archive</a>
+    <label>Passage
+      <select data-track-select aria-label="Passage"></select>
+    </label>
+    <div class="layout-options" role="group" aria-label="Image format">
+      <button type="button" data-layout="article" aria-pressed="true">1600 × 1000</button>
+      <button type="button" data-layout="portrait" aria-pressed="false">1200 × 1500</button>
+      <button type="button" data-layout="wide" aria-pressed="false">1920 × 1080</button>
+    </div>
+    <button class="download-button" type="button" data-download disabled>Download PNG</button>
+  </header>
+
+  <main>
+    <section class="voyage-card" data-card data-card-layout="article" aria-label="Aurora voyage card preview">
+      <header class="card-heading">
+        <p>S/Y AURORA · GREAT DANE 28 · HULL 165</p>
+        <h1 data-card-title>Voyage archive</h1>
+        <div data-card-meta>Waiting for GPX data</div>
+      </header>
+      <div id="voyage-card-map" class="card-map" aria-label="Selected voyage map"></div>
+      <footer class="card-footer">
+        <span>AURORA VOYAGE ATLAS</span>
+        <span>Positions at 12:00 UTC where recorded</span>
+      </footer>
+    </section>
+    <p class="export-status" data-status aria-live="polite"></p>
+  </main>
+</body>
+</html>

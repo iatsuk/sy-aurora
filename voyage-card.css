@@ -1,0 +1,92 @@
+:root {
+  --ink: #10232c;
+  --navy: #071b24;
+  --teal: #2f6f73;
+  --sand: #d6b77a;
+  --paper: #f3efe6;
+  --paper-2: #e8e2d7;
+  --route: #8c4f3f;
+  --line: rgba(7,27,36,.16);
+  --serif: "Marcellus", Georgia, serif;
+  --sans: "Manrope", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; min-width: 320px; background: #d7d1c6; color: var(--ink); font-family: var(--sans); }
+button, select { font: inherit; }
+
+.export-toolbar {
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: .7rem;
+  padding: 1rem;
+  background: var(--navy);
+  color: var(--paper);
+}
+
+.export-toolbar label { display: grid; gap: .25rem; color: rgba(255,255,255,.65); font-size: .68rem; letter-spacing: .08em; text-transform: uppercase; }
+.export-toolbar select,
+.export-toolbar button,
+.back-link { min-height: 2.55rem; border: 1px solid rgba(255,255,255,.2); border-radius: 999px; background: rgba(255,255,255,.07); color: var(--paper); padding: 0 .9rem; text-decoration: none; }
+.export-toolbar select { min-width: 14rem; color-scheme: dark; }
+.back-link { display: inline-flex; align-items: center; }
+.layout-options { display: flex; gap: .35rem; }
+.layout-options button[aria-pressed="true"] { background: var(--sand); color: var(--navy); border-color: var(--sand); }
+.download-button { background: var(--teal) !important; border-color: transparent !important; font-weight: 700; cursor: pointer; }
+.download-button:disabled { cursor: wait; opacity: .48; }
+
+main { padding: clamp(1rem, 3vw, 2.5rem); }
+.voyage-card {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  width: min(1120px, 100%);
+  aspect-ratio: 8 / 5;
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 1.4rem;
+  background: var(--paper);
+  box-shadow: 0 28px 80px rgba(3,17,23,.2);
+}
+
+.voyage-card[data-card-layout="portrait"] { width: min(760px, 100%); aspect-ratio: 4 / 5; }
+.voyage-card[data-card-layout="wide"] { aspect-ratio: 16 / 9; }
+
+.card-heading { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: .5rem 2rem; padding: clamp(1rem, 2.5vw, 2rem) clamp(1.1rem, 3vw, 2.6rem); }
+.card-heading p { grid-column: 1 / -1; margin: 0; color: var(--teal); font-size: .64rem; font-weight: 700; letter-spacing: .16em; }
+.card-heading h1 { margin: 0; color: var(--navy); font: clamp(1.8rem, 4vw, 3.8rem)/1 var(--serif); letter-spacing: -.03em; }
+.card-heading div { color: #64777c; font-size: .75rem; text-align: right; }
+
+.card-map { min-height: 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); background: #d7ddd9; }
+.card-map .leaflet-tile { filter: grayscale(.42) sepia(.14) saturate(.68) brightness(1.04) contrast(.94); }
+.card-map .leaflet-control-attribution { background: rgba(243,239,230,.82); color: #617379; font-size: 9px; }
+.card-map .leaflet-control-attribution a { color: var(--teal); }
+.card-map .leaflet-tooltip.voyage-day-label { padding: .18rem .32rem; border: 0; border-radius: .3rem; background: rgba(243,239,230,.92); color: var(--route); box-shadow: none; font: 700 .62rem var(--sans); }
+.card-map .leaflet-tooltip.voyage-day-label::before { display: none; }
+.voyage-direction-marker { border: 0; background: transparent; }
+.voyage-direction-arrow { display: grid; width: 22px; height: 22px; place-items: center; color: var(--route); font-size: 17px; font-weight: 700; text-shadow: 0 1px 2px rgba(243,239,230,.95), 0 -1px 2px rgba(243,239,230,.95); transform-origin: center; }
+
+.card-footer { display: flex; justify-content: space-between; gap: 1rem; padding: .7rem clamp(1.1rem, 3vw, 2.6rem); color: #687a80; font-size: .58rem; font-weight: 700; letter-spacing: .11em; }
+.export-status { min-height: 1.5rem; margin: .8rem auto 0; color: #52666d; text-align: center; font-size: .78rem; }
+
+.voyage-card[data-card-layout="portrait"] .card-heading { grid-template-columns: 1fr; align-items: start; }
+.voyage-card[data-card-layout="portrait"] .card-heading div { text-align: left; }
+
+@media (max-width: 850px) {
+  .export-toolbar { align-items: stretch; flex-direction: column; }
+  .export-toolbar select { width: 100%; }
+  .layout-options { flex-wrap: wrap; }
+  .voyage-card { border-radius: .8rem; }
+  .card-heading div { display: none; }
+  .card-heading { grid-template-columns: 1fr; }
+  .card-footer span:last-child { display: none; }
+}
+
+@media print {
+  @page { margin: 0; }
+  body { background: var(--paper); }
+  .export-toolbar, .export-status { display: none; }
+  main { padding: 0; }
+  .voyage-card { width: 100%; max-width: none; border: 0; border-radius: 0; box-shadow: none; }
+}

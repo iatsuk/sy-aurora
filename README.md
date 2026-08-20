@@ -59,7 +59,11 @@ Keep original GPX files in `tracks/source/` and generate a lighter web represent
 python3 tools/build_tracks.py --tolerance 20
 ```
 
-The script calculates distance from the original geometry, preserves available dates and simplifies only the published geometry with Ramer-Douglas-Peucker. A tolerance around `15–30 m` is a useful starting point for dense Navionics tracks. The source GPX is never modified.
+The script calculates distance and elapsed time from the original geometry, derives a position for 12:00 UTC on every recorded day, and simplifies only the published line with Ramer-Douglas-Peucker. A tolerance around `15–30 m` is a useful starting point for dense Navionics tracks. The source GPX is never modified.
+
+When timestamps are available, the voyage list shows the date range, distance and elapsed time. Selecting a voyage reveals its start, finish, UTC noon positions and a small number of direction arrows. These marks are derived only from the GPX; the site does not infer weather, engine use, sail use or the reasons behind course changes.
+
+Each published voyage also links to `voyage-card.html`, an export view that uses the same GeoJSON. Choose an article (`1600×1000`), portrait (`1200×1500`) or widescreen (`1920×1080`) format and download a PNG for a blog post or preview image. The export runs entirely in the browser; keep the page open until the map tiles have loaded.
 
 ## Live position
 

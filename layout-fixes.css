@@ -264,7 +264,55 @@
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
 }
+#voyage-map .leaflet-tile {
+  filter: grayscale(.42) sepia(.14) saturate(.68) brightness(1.04) contrast(.94);
+}
 .leaflet-zoom-animated { transition: none !important; }
+
+.voyage-direction-marker {
+  border: 0;
+  background: transparent;
+}
+
+.voyage-direction-arrow {
+  display: grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  color: #8c4f3f;
+  font-size: 17px;
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(243,239,230,.95), 0 -1px 2px rgba(243,239,230,.95);
+  transform-origin: center;
+}
+
+.leaflet-tooltip.voyage-track-tooltip {
+  padding: .65rem .75rem;
+  border: 1px solid rgba(7,27,36,.16);
+  border-radius: .65rem;
+  background: rgba(243,239,230,.96);
+  color: var(--ink);
+  box-shadow: 0 10px 28px rgba(3,17,23,.14);
+}
+
+.voyage-track-tooltip strong,
+.voyage-track-tooltip span { display: block; }
+.voyage-track-tooltip strong { font: 1rem var(--serif); color: var(--navy); }
+.voyage-track-tooltip span { margin-top: .2rem; color: #62757b; font-size: .7rem; }
+
+.leaflet-tooltip.voyage-day-label {
+  padding: .2rem .35rem;
+  border: 0;
+  border-radius: .35rem;
+  background: rgba(243,239,230,.9);
+  color: #8c4f3f;
+  box-shadow: none;
+  font-size: .64rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+
+.leaflet-tooltip.voyage-day-label::before { display: none; }
 
 .source-group {
   min-height: 150px;
