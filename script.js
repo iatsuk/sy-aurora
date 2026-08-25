@@ -30,6 +30,7 @@
   document.querySelectorAll('.reveal').forEach((el) => observer ? observer.observe(el) : el.classList.add('visible'));
 
   addFooterOwner();
+  addRassvetReference();
   repairLeafletStylesheet().finally(initVoyageMapWhenVisible);
   initGallery();
 
@@ -40,6 +41,15 @@
     owner.className = 'footer-owner';
     owner.textContent = 'Andrei Iatsuk';
     footerIdentity.appendChild(owner);
+  }
+
+  function addRassvetReference() {
+    const copy = document.querySelector('.transition-copy');
+    if (!copy || copy.querySelector('.transition-reference')) return;
+    const note = document.createElement('p');
+    note.className = 'transition-reference';
+    note.innerHTML = 'The complete 2023–2026 record of the Ohlson 29 <a href="https://iatsuk.github.io/sy-rassvet/" target="_blank" rel="noreferrer"><strong>Rassvet</strong> ↗</a> is preserved on its own site.';
+    copy.appendChild(note);
   }
 
   function repairLeafletStylesheet() {
@@ -84,6 +94,9 @@
 
   async function initVoyageMap(mapNode) {
     const defaultView = { center: [56.2, 10.7], zoom: 5 };
+    const inactiveStyle = { color: '#376e73', weight: 2.5, opacity: .42 };
+    const relatedStyle = { color: '#8a6c42', weight: 3.2, opacity: .72 };
+    const activeStyle = { color: '#d6b77a', weight: 4.8, opacity: 1 };
     const map = L.map(mapNode, {
       zoomControl: false,
       scrollWheelZoom: true,
@@ -107,64 +120,295 @@
       attribution: '&copy; OpenStreetMap contributors'
     }).addTo(map);
 
-    let allBounds = null;
+    const section = mapNode.closest('.voyages-section');
+    const layout = section?.querySelector('.compact-voyage-layout');
+    const list = section?.querySelector('[data-voyage-items]');
+    const empty = section?.querySelector('[data-map-empty]');
+    const records = [];
+    const groups = new Map();
+    let activeYear = 'all';
+    let selectedRecord = null;
+    let selectedGroup = null;
+
     const refreshMap = () => map.invalidateSize({ pan: false, animate: false });
-    const resetMap = () => {
-      if (allBounds?.isValid()) map.fitBounds(allBounds, { padding: [28, 28], maxZoom: 11, animate: false });
-      else map.setView(defaultView.center, defaultView.zoom, { animate: false });
+    const trackYear = (properties) => {
+      const candidate = String(properties.year || properties.start || properties.source || '');
+      return candidate.match(/20\d{2}/)?.[0] || 'Undated';
+    };
+    const formatDate = (value) => {
+      if (!value) return '';
+      const date = new Date(value);
+      return Number.isNaN(date.valueOf()) ? String(value) : new Intl.DateTimeFormat('en-GB', {
+        day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC'
+      }).format(date);
+    };
+    const formatDistance = (distance) => Number.isFinite(distance)
+      ? `${new Intl.NumberFormat('en-GB', { maximumFractionDigits: 1 }).format(distance)} nm`
+      : '';
+    const formatDuration = (hours) => {
+      if (!Number.isFinite(hours) || hours < 0) return '';
+      const minutes = Math.round(hours * 60);
+      const wholeHours = Math.floor(minutes / 60);
+      const remainder = minutes % 60;
+      return wholeHours ? `${wholeHours} h${remainder ? ` ${remainder} min` : ''}` : `${remainder} min`;
+    };
+    const humanize = (value) => String(value || 'Voyages')
+      .split('/').pop().replace(/[-_]+/g, ' ').replace(/\b\w/g, (char) => char.toUpperCase());
+    const visibleRecords = () => records.filter((record) => activeYear === 'all' || record.year === activeYear);
+    const geometryLines = (geometry) => {
+      if (geometry?.type === 'LineString') return [geometry.coordinates || []];
+      if (geometry?.type === 'MultiLineString') return geometry.coordinates || [];
+      return [];
+    };
+    const fitLayers = (layers, maxZoom = 11) => {
+      if (!layers.length) {
+        map.setView(defaultView.center, defaultView.zoom, { animate: false });
+        return;
+      }
+      const bounds = L.featureGroup(layers).getBounds();
+      if (bounds.isValid()) map.fitBounds(bounds, { padding: [28, 28], maxZoom, animate: false });
+    };
+    const fitVisible = () => fitLayers(visibleRecords().map((record) => record.layer));
+
+    let meta = section?.querySelector('[data-voyage-atlas-meta]');
+    if (!meta && section && layout) {
+      meta = document.createElement('div');
+      meta.className = 'voyage-atlas-meta';
+      meta.dataset.voyageAtlasMeta = '';
+      meta.hidden = true;
+      meta.innerHTML = `
+        <dl class="voyage-atlas-totals" aria-label="Published voyage archive totals">
+          <div><dt data-atlas-track-count>0</dt><dd>tracks</dd></div>
+          <div><dt data-atlas-distance>0 nm</dt><dd>recorded distance</dd></div>
+        </dl>
+        <div class="voyage-year-filters" data-voyage-year-filters aria-label="Filter tracks by year"></div>`;
+      layout.before(meta);
+    }
+
+    const updateTotals = () => {
+      const visible = visibleRecords();
+      const distance = visible.reduce((total, record) => total + (Number(record.properties.distance_nm) || 0), 0);
+      const countNode = meta?.querySelector('[data-atlas-track-count]');
+      const distanceNode = meta?.querySelector('[data-atlas-distance]');
+      if (countNode) countNode.textContent = String(visible.length);
+      if (distanceNode) distanceNode.textContent = formatDistance(distance);
+    };
+
+    const buildDetails = (feature) => {
+      const details = L.layerGroup();
+      const lines = geometryLines(feature.geometry).filter((line) => line.length);
+      if (!lines.length) return details;
+      const first = lines[0][0];
+      const lastLine = lines[lines.length - 1];
+      const last = lastLine[lastLine.length - 1];
+      [[first, 'Start', false], [last, 'Finish', true]].forEach(([position, label, filled]) => {
+        L.circleMarker([position[1], position[0]], {
+          radius: 6,
+          color: activeStyle.color,
+          weight: 2.4,
+          fillColor: filled ? activeStyle.color : '#f5f0e6',
+          fillOpacity: 1
+        }).bindTooltip(label, { direction: 'top' }).addTo(details);
+      });
+      (feature.properties?.day_marks || []).forEach((mark) => {
+        if (!Array.isArray(mark.coordinates)) return;
+        L.circleMarker([mark.coordinates[1], mark.coordinates[0]], {
+          radius: 4,
+          color: activeStyle.color,
+          weight: 2,
+          fillColor: '#f5f0e6',
+          fillOpacity: 1
+        }).bindTooltip(formatDate(mark.time), { direction: 'top' }).addTo(details);
+      });
+      return details;
+    };
+
+    const resetSelection = () => {
+      selectedRecord = null;
+      selectedGroup = null;
+      records.forEach((record) => {
+        record.layer.setStyle(inactiveStyle);
+        record.details.removeFrom(map);
+        record.item.classList.remove('active');
+        record.button.setAttribute('aria-pressed', 'false');
+      });
+      groups.forEach((group) => {
+        group.section.classList.remove('active');
+        group.button.setAttribute('aria-pressed', 'false');
+      });
+    };
+
+    const selectGroup = (group, fit = true) => {
+      resetSelection();
+      selectedGroup = group;
+      group.section.classList.add('active');
+      group.button.setAttribute('aria-pressed', 'true');
+      const visible = group.records.filter((record) => activeYear === 'all' || record.year === activeYear);
+      visible.forEach((record) => record.layer.setStyle(relatedStyle));
+      if (fit) fitLayers(visible.map((record) => record.layer), 10);
+    };
+
+    const selectRecord = (record, fit = true) => {
+      resetSelection();
+      selectedRecord = record;
+      selectedGroup = record.group;
+      record.group.section.classList.add('active');
+      record.group.records.forEach((candidate) => {
+        if (activeYear === 'all' || candidate.year === activeYear) candidate.layer.setStyle(relatedStyle);
+      });
+      record.layer.setStyle(activeStyle);
+      record.item.classList.add('active');
+      record.button.setAttribute('aria-pressed', 'true');
+      record.details.addTo(map);
+      if (fit) fitLayers([record.layer], 12);
+    };
+
+    const applyYear = (year) => {
+      activeYear = year;
+      resetSelection();
+      records.forEach((record) => {
+        const visible = year === 'all' || record.year === year;
+        if (visible && !map.hasLayer(record.layer)) record.layer.addTo(map);
+        if (!visible && map.hasLayer(record.layer)) record.layer.removeFrom(map);
+        record.item.hidden = !visible;
+      });
+      groups.forEach((group) => {
+        group.section.hidden = !group.records.some((record) => year === 'all' || record.year === year);
+      });
+      meta?.querySelectorAll('[data-voyage-year]').forEach((button) => {
+        const active = button.dataset.voyageYear === year;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', String(active));
+      });
+      updateTotals();
+      refreshMap();
+      fitVisible();
+    };
+
+    const renderFilters = () => {
+      const container = meta?.querySelector('[data-voyage-year-filters]');
+      if (!container) return;
+      container.replaceChildren();
+      const years = [...new Set(records.map((record) => record.year))]
+        .sort((a, b) => b.localeCompare(a, undefined, { numeric: true }));
+      [['all', 'All years'], ...years.map((year) => [year, year])].forEach(([value, label]) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.voyageYear = value;
+        button.setAttribute('aria-pressed', String(value === 'all'));
+        button.classList.toggle('active', value === 'all');
+        button.textContent = label;
+        button.addEventListener('click', () => applyYear(value));
+        container.append(button);
+      });
+    };
+
+    const createRecord = (feature, index) => {
+      const properties = feature.properties || {};
+      const year = trackYear(properties);
+      const groupId = properties.voyage_id || `${year}/other`;
+      const layer = L.geoJSON(feature, { style: inactiveStyle }).addTo(map);
+      const details = buildDetails(feature);
+      const item = document.createElement('article');
+      const button = document.createElement('button');
+      const title = properties.name || `Voyage ${index + 1}`;
+      const summary = [
+        formatDateRange(properties.start, properties.end),
+        formatDistance(Number(properties.distance_nm)),
+        formatDuration(Number(properties.duration_hours))
+      ].filter(Boolean).join(' · ');
+      item.className = 'voyage-track-item';
+      button.type = 'button';
+      button.setAttribute('aria-pressed', 'false');
+      button.innerHTML = `<strong>${escapeHtml(title)}</strong><small>${escapeHtml(summary)}</small>`;
+      item.append(button);
+      const record = { properties, year, groupId, layer, details, item, button, title, summary, group: null };
+      button.addEventListener('click', () => selectRecord(record));
+      layer.on('click', () => selectRecord(record, false));
+      layer.bindTooltip(`<strong>${escapeHtml(title)}</strong><br>${escapeHtml(summary)}`, { sticky: true });
+      records.push(record);
+    };
+
+    const renderGroups = () => {
+      if (!list) return;
+      list.replaceChildren();
+      records.forEach((record) => {
+        if (!groups.has(record.groupId)) {
+          groups.set(record.groupId, {
+            id: record.groupId,
+            year: record.year,
+            title: record.properties.voyage_title || (record.groupId.endsWith('/other') ? `${record.year} voyages` : humanize(record.groupId)),
+            records: []
+          });
+        }
+        const group = groups.get(record.groupId);
+        group.records.push(record);
+        record.group = group;
+      });
+
+      [...groups.values()]
+        .sort((a, b) => String(b.records[0]?.properties.start || b.id).localeCompare(String(a.records[0]?.properties.start || a.id)))
+        .forEach((group) => {
+          group.records.sort((a, b) => String(a.properties.start || a.properties.source).localeCompare(String(b.properties.start || b.properties.source)));
+          const starts = group.records.map((record) => record.properties.start).filter(Boolean).sort();
+          const ends = group.records.map((record) => record.properties.end).filter(Boolean).sort();
+          const distance = group.records.reduce((total, record) => total + (Number(record.properties.distance_nm) || 0), 0);
+          const groupSection = document.createElement('section');
+          const button = document.createElement('button');
+          const legs = document.createElement('div');
+          groupSection.className = 'voyage-group';
+          button.className = 'voyage-group-button';
+          button.type = 'button';
+          button.setAttribute('aria-pressed', 'false');
+          button.innerHTML = `
+            <span>${escapeHtml(group.year)} · ${group.records.length} ${group.records.length === 1 ? 'leg' : 'legs'}</span>
+            <strong>${escapeHtml(group.title)}</strong>
+            <small>${escapeHtml([formatDateRange(starts[0], ends[ends.length - 1]), formatDistance(distance)].filter(Boolean).join(' · '))}</small>`;
+          legs.className = 'voyage-group-legs';
+          group.records.forEach((record) => legs.append(record.item));
+          groupSection.append(button, legs);
+          list.append(groupSection);
+          group.section = groupSection;
+          group.button = button;
+          button.addEventListener('click', () => selectGroup(group));
+        });
     };
 
     document.querySelector('[data-map-zoom-in]')?.addEventListener('click', () => map.setZoom(map.getZoom() + 1, { animate: false }));
     document.querySelector('[data-map-zoom-out]')?.addEventListener('click', () => map.setZoom(map.getZoom() - 1, { animate: false }));
-    document.querySelector('[data-map-reset]')?.addEventListener('click', resetMap);
+    document.querySelector('[data-map-reset]')?.addEventListener('click', () => {
+      resetSelection();
+      refreshMap();
+      fitVisible();
+    });
 
     requestAnimationFrame(() => requestAnimationFrame(refreshMap));
     window.setTimeout(refreshMap, 180);
     window.addEventListener('resize', refreshMap, { passive: true });
-
-    map.on('zoomend', () => {
-      requestAnimationFrame(() => {
-        refreshMap();
-        tiles.redraw();
-      });
-    });
+    map.on('zoomend', () => requestAnimationFrame(() => {
+      refreshMap();
+      tiles.redraw();
+    }));
 
     try {
       const response = await fetch('data/tracks.geojson', { cache: 'no-store' });
       if (!response.ok) throw new Error(`tracks.geojson: ${response.status}`);
       const data = await response.json();
-      if (!data.features?.length) return;
+      const features = (data.features || []).filter((feature) => ['LineString', 'MultiLineString'].includes(feature.geometry?.type));
+      if (!features.length) return;
 
-      const palette = ['#2f6f73', '#8d6b43', '#24566b', '#8c4f3f', '#5e6f47'];
-      const layers = [];
-      const list = document.querySelector('[data-voyage-items]');
-      document.querySelector('[data-map-empty]')?.remove();
-
-      data.features.forEach((feature, index) => {
-        const color = palette[index % palette.length];
-        const layer = L.geoJSON(feature, { style: { color, weight: 3, opacity: .88 } }).addTo(map);
-        layers.push(layer);
-
-        const p = feature.properties || {};
-        const item = document.createElement('article');
-        item.className = 'voyage-item';
-        const distance = Number.isFinite(p.distance_nm) ? `${p.distance_nm.toFixed(1)} nm` : '';
-        const dates = formatDateRange(p.start, p.end);
-        item.innerHTML = `<button type="button"><strong>${escapeHtml(p.name || `Voyage ${index + 1}`)}</strong><span>${[dates, distance].filter(Boolean).join(' · ')}</span></button>`;
-        item.querySelector('button').addEventListener('click', () => {
-          refreshMap();
-          map.fitBounds(layer.getBounds(), { padding: [28, 28], maxZoom: 12, animate: false });
-        });
-        list?.appendChild(item);
-      });
-
-      const group = L.featureGroup(layers);
-      allBounds = group.getBounds();
+      features.forEach(createRecord);
+      renderGroups();
+      renderFilters();
+      empty?.remove();
+      if (meta) meta.hidden = false;
+      updateTotals();
       refreshMap();
-      resetMap();
+      fitVisible();
       window.setTimeout(() => {
         refreshMap();
         tiles.redraw();
+        fitVisible();
       }, 100);
     } catch (error) {
       console.warn('Unable to load voyage archive', error);
@@ -245,7 +489,7 @@
     if (!start) return '';
     const format = (value) => {
       const date = new Date(value);
-      return Number.isNaN(date.valueOf()) ? value : new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
+      return Number.isNaN(date.valueOf()) ? value : new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(date);
     };
     const a = format(start);
     const b = end ? format(end) : '';

@@ -53,13 +53,28 @@ The script writes `data/gallery-data.js`, which drives gallery filters and the f
 
 ## Add GPX voyages
 
-Keep original GPX files in `tracks/source/` and generate a lighter web representation:
+Keep original GPX files under `tracks/source/`. A flat directory still works, but grouping passages by year and voyage gives the website a much better archive structure:
+
+```text
+tracks/source/
+  2026/
+    denmark-delivery/
+      Kiel - Sønderborg.gpx
+      Sønderborg - Marstal.gpx
+    skagerrak/
+      Grenaa - Læsø.gpx
+      Læsø - Malmön.gpx
+```
+
+Generate the lighter web representation with:
 
 ```bash
 python3 tools/build_tracks.py --tolerance 20
 ```
 
-The script calculates distance from the original geometry, preserves available dates and simplifies only the published geometry with Ramer-Douglas-Peucker. A tolerance around `15–30 m` is a useful starting point for dense Navionics tracks. The source GPX is never modified.
+The script calculates distance from the original geometry, preserves separate GPX segments rather than drawing false lines across recording gaps, keeps available start/end times, duration and daily noon marks, and simplifies only the published geometry with Ramer-Douglas-Peucker. Folder names become voyage groups in the map, while years become filters. A tolerance around `15–30 m` is a useful starting point for dense Navionics tracks. The source GPX is never modified.
+
+If no private GPX source files are present, the builder leaves the existing published GeoJSON unchanged rather than replacing it with an empty archive.
 
 ## Live position
 

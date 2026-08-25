@@ -1,5 +1,15 @@
 /* Living-boat layout fixes and stability overrides. */
 
+/* Empty archives are authoring states, not useful published sections. The
+   placeholders disappear when data loads, which automatically reveals the
+   corresponding section and navigation link. */
+body:has(.voyages-section [data-map-empty]) .voyages-section,
+body:has(.gallery-section [data-gallery-grid] > .gallery-empty:only-child) .gallery-section,
+body:has(.voyages-section [data-map-empty]) .site-nav a[href="#voyages"],
+body:has(.gallery-section [data-gallery-grid] > .gallery-empty:only-child) .site-nav a[href="#gallery"] {
+  display: none;
+}
+
 .live-first {
   padding-top: clamp(4.5rem, 7vw, 7rem);
   padding-bottom: clamp(4.5rem, 7vw, 7rem);
@@ -266,6 +276,64 @@
 }
 .leaflet-zoom-animated { transition: none !important; }
 
+.transition-reference {
+  margin-top: 1.35rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  color: #667a80;
+  font-size: .8rem;
+}
+.transition-reference a { color: var(--teal); text-decoration-thickness: 1px; text-underline-offset: .18em; }
+
+.voyage-atlas-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 1.5rem;
+  margin: 0 0 .8rem;
+  padding: .9rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: 1rem;
+  background: rgba(255,255,255,.32);
+}
+.voyage-atlas-meta[hidden] { display: none; }
+.voyage-atlas-totals { display: flex; gap: 1.5rem; margin: 0; }
+.voyage-atlas-totals div { min-width: 7.5rem; }
+.voyage-atlas-totals dt { font: 1.25rem var(--serif); color: var(--navy); }
+.voyage-atlas-totals dd { margin: .15rem 0 0; color: #72858a; font-size: .6rem; letter-spacing: .09em; text-transform: uppercase; }
+.voyage-year-filters { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .4rem; }
+.voyage-year-filters button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: .48rem .72rem;
+  background: transparent;
+  color: #586c72;
+  cursor: pointer;
+  font-size: .68rem;
+}
+.voyage-year-filters button:hover,
+.voyage-year-filters button.active { background: var(--navy); border-color: var(--navy); color: var(--white); }
+.voyage-group { margin-bottom: .55rem; overflow: hidden; border: 1px solid var(--line); border-radius: .85rem; background: rgba(255,255,255,.28); }
+.voyage-group.active { border-color: rgba(138,108,66,.52); background: rgba(138,108,66,.06); }
+.voyage-group-button,
+.voyage-track-item button { display: block; width: 100%; border: 0; background: transparent; color: inherit; text-align: left; cursor: pointer; }
+.voyage-group-button { padding: .9rem; border-bottom: 1px solid var(--line); }
+.voyage-group-button:hover { background: rgba(7,27,36,.035); }
+.voyage-group-button > span { display: block; margin-bottom: .35rem; color: var(--teal); font-size: .57rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
+.voyage-group-button strong { display: block; font: 1rem var(--serif); color: var(--navy); }
+.voyage-group-button small { display: block; margin-top: .35rem; color: #72858a; font-size: .66rem; }
+.voyage-group-legs { padding: .25rem .5rem .5rem; }
+.voyage-track-item { border-bottom: 1px solid rgba(7,27,36,.08); border-radius: .55rem; }
+.voyage-track-item:last-child { border-bottom: 0; }
+.voyage-track-item:hover,
+.voyage-track-item.active { background: rgba(214,183,122,.14); }
+.voyage-track-item.active { box-shadow: inset 3px 0 var(--sand); }
+.voyage-track-item button { padding: .7rem .6rem; }
+.voyage-track-item strong { display: block; font: .92rem var(--serif); color: var(--navy); }
+.voyage-track-item small { display: block; margin-top: .25rem; color: #72858a; font-size: .62rem; line-height: 1.45; }
+.voyages-section .leaflet-tile-pane { filter: grayscale(.62) sepia(.12) saturate(.72) brightness(1.05) contrast(.94); }
+.voyages-section .leaflet-tooltip { border: 0; border-radius: .55rem; background: var(--navy); color: var(--white); box-shadow: 0 8px 20px rgba(0,0,0,.2); }
+
 .source-group {
   min-height: 150px;
   padding: 1.2rem;
@@ -317,6 +385,8 @@
     border-radius: 1rem;
   }
   .ownership-line article::after { display: none; }
+  .voyage-atlas-meta { align-items: flex-start; flex-direction: column; }
+  .voyage-year-filters { justify-content: flex-start; }
   .voyage-list { height: auto; max-height: 320px; }
 }
 
@@ -332,5 +402,8 @@
   .map-wrap.reveal,
   .map-wrap.reveal.visible,
   .map-panel { height: 390px !important; max-height: 390px; }
+  .voyage-atlas-meta { padding: .75rem; }
+  .voyage-atlas-totals { gap: .9rem; }
+  .voyage-atlas-totals div { min-width: 0; }
   .map-toolbar { top: .55rem; }
 }
