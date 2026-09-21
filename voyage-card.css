@@ -89,9 +89,9 @@ main { padding: clamp(1rem, 3vw, 2.5rem); }
 
 .card-heading {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr);
   align-items: end;
-  gap: .5rem 2rem;
+  gap: .5rem;
   padding: clamp(1.1rem, 2.7vw, 2.15rem) clamp(1.1rem, 3vw, 2.6rem);
   color: var(--white);
   background:
@@ -107,17 +107,20 @@ main { padding: clamp(1rem, 3vw, 2.5rem); }
   letter-spacing: .16em;
 }
 .card-heading h1 {
+  grid-column: 1 / -1;
   margin: 0;
+  min-width: 0;
   color: var(--white);
   font: clamp(1.8rem, 4vw, 3.8rem)/1 var(--serif);
   letter-spacing: -.03em;
 }
 .card-heading div {
-  max-width: 30rem;
+  grid-column: 1 / -1;
+  max-width: none;
   color: rgba(255,255,255,.66);
   font-size: .75rem;
   line-height: 1.5;
-  text-align: right;
+  text-align: left;
 }
 
 .card-map-stage {
@@ -214,7 +217,6 @@ main { padding: clamp(1rem, 3vw, 2.5rem); }
 
 .voyage-card[data-card-layout="story"] .card-heading,
 .voyage-card[data-card-layout="portrait"] .card-heading {
-  grid-template-columns: 1fr;
   align-items: start;
 }
 .voyage-card[data-card-layout="story"] .card-heading {
@@ -226,7 +228,6 @@ main { padding: clamp(1rem, 3vw, 2.5rem); }
 }
 .voyage-card[data-card-layout="story"] .card-heading div,
 .voyage-card[data-card-layout="portrait"] .card-heading div {
-  max-width: none;
   text-align: left;
 }
 .voyage-card[data-card-layout="story"] .card-footer {

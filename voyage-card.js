@@ -595,10 +595,47 @@
     drawContextLines(context, previousEntries, contextColor, 4.2);
     drawContextLines(context, currentEntries, routeColor, 5.4);
 
-    const firstEndpoints = featureEndpoints(state.entries[0]?.feature);
-    const lastEndpoints = featureEndpoints(state.entries[state.entries.length - 1]?.feature);
-    if (firstEndpoints) drawContextPoint(context, firstEndpoints.start, contextColor, false);
-    if (lastEndpoints) drawContextPoint(context, lastEndpoints.end, routeColor, true);
+    const firstFeature = state.entries[0]?.feature;
+    const lastFeature = state.entries[state.entries.length - 1]?.feature;
+    const firstEndpoints = featureEndpoints(firstFeature);
+    const lastEndpoints = featureEndpoints(lastFeature);
+
+    const occupiedBoxes = [
+      { x: 8, y: 8, width: 158, height: 28 }
+    ];
+
+    if (firstEndpoints) {
+      const firstProperties = firstFeature?.properties || {};
+      const startBox = drawContextCallout(
+        context,
+        firstEndpoints.start,
+        'START',
+        formatLocalDateTime(firstProperties.start, firstProperties.start_timezone),
+        contextColor,
+        false,
+        occupiedBoxes
+      );
+      if (startBox) occupiedBoxes.push(startBox);
+    }
+
+    if (lastEndpoints) {
+      const lastProperties = lastFeature?.properties || {};
+      const cumulativeDistance = state.entries.reduce(
+        (total, entry) => total + (Number(entry.feature?.properties?.distance_nm) || 0),
+        0
+      );
+      const currentPassage = passageCode(lastProperties.name, state.entries.length - 1);
+      const endBox = drawContextCallout(
+        context,
+        lastEndpoints.end,
+        `${currentPassage} · ${cumulativeDistance.toFixed(1)} NM total`,
+        formatLocalDateTime(lastProperties.end, lastProperties.end_timezone),
+        routeColor,
+        true,
+        occupiedBoxes
+      );
+      if (endBox) occupiedBoxes.push(endBox);
+    }
   }
 
   function drawContextLines(context, entries, color, width) {
@@ -630,6 +667,87 @@
     context.lineWidth = 2.5;
     context.stroke();
     context.restore();
+  }
+
+  function drawContextCallout(context, coordinate, primary, secondary, color, filled, occupiedBoxes = []) {
+    const point = contextMap.latLngToContainerPoint([coordinate[1], coordinate[0]]);
+    const primaryFont = '700 10px Manrope, system-ui, sans-serif';
+    const secondaryFont = '500 9px Manrope, system-ui, sans-serif';
+
+    context.save();
+    context.font = primaryFont;
+    const primaryWidth = context.measureText(primary || '').width;
+    context.font = secondaryFont;
+    const secondaryWidth = context.measureText(secondary || '').width;
+
+    const boxWidth = Math.ceil(Math.max(primaryWidth, secondaryWidth) + 22);
+    const boxHeight = secondary ? 38 : 24;
+    const pointGap = 9;
+    const collisionGap = 2;
+
+    let x = point.x - boxWidth / 2;
+    x = Math.max(6, Math.min(x, contextMapNode.clientWidth - boxWidth - 6));
+
+    const preferredAbove = point.y - boxHeight - pointGap;
+    const preferredBelow = point.y + pointGap;
+    const candidates = [
+      resolveContextCalloutPosition(x, preferredAbove, boxWidth, boxHeight, -1, occupiedBoxes, collisionGap),
+      resolveContextCalloutPosition(x, preferredBelow, boxWidth, boxHeight, 1, occupiedBoxes, collisionGap)
+    ].filter(Boolean);
+
+    let chosen = candidates
+      .sort((a, b) => (a.displacement - b.displacement) || (a.direction - b.direction))[0];
+
+    if (!chosen) {
+      const y = Math.max(6, Math.min(preferredAbove, contextMapNode.clientHeight - boxHeight - 6));
+      chosen = { rect: { x, y, width: boxWidth, height: boxHeight }, displacement: 0, direction: -1 };
+    }
+
+    drawContextPoint(context, coordinate, color, filled);
+
+    const { y } = chosen.rect;
+    roundedRect(context, x, y, boxWidth, boxHeight, 6);
+    context.fillStyle = 'rgba(7,27,36,.92)';
+    context.fill();
+
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.font = primaryFont;
+    context.fillStyle = sandColor;
+    context.fillText(primary || '', x + boxWidth / 2, y + (secondary ? 12 : boxHeight / 2));
+
+    if (secondary) {
+      context.font = secondaryFont;
+      context.fillStyle = 'rgba(255,253,248,.76)';
+      context.fillText(secondary, x + boxWidth / 2, y + 27);
+    }
+    context.restore();
+
+    return chosen.rect;
+  }
+
+  function resolveContextCalloutPosition(x, preferredY, width, height, direction, occupiedBoxes, gap) {
+    let y = preferredY;
+    const maxIterations = occupiedBoxes.length + 2;
+
+    for (let iteration = 0; iteration < maxIterations; iteration += 1) {
+      const rect = { x, y, width, height };
+      const collision = occupiedBoxes.find((box) =>
+        rectsIntersect(rect, expandRect(box, gap))
+      );
+
+      if (!collision) {
+        const inside = y >= 6 && y + height <= contextMapNode.clientHeight - 6;
+        return inside
+          ? { rect, displacement: Math.abs(y - preferredY), direction }
+          : null;
+      }
+
+      if (direction < 0) y = collision.y - height - gap;
+      else y = collision.y + collision.height + gap;
+    }
+
+    return null;
   }
 
   function featureEndpoints(feature) {
