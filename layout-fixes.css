@@ -344,25 +344,38 @@
 .voyage-group-button strong { display: block; font: 1rem var(--serif); color: var(--navy); }
 .voyage-group-button small { display: block; margin-top: .35rem; color: #72858a; font-size: .66rem; }
 .voyage-group-legs { padding: .25rem .5rem .5rem; }
-.voyage-track-item { border-bottom: 1px solid rgba(7,27,36,.08); border-radius: .55rem; }
+.voyage-track-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  border-bottom: 1px solid rgba(7,27,36,.08);
+  border-radius: .55rem;
+}
 .voyage-track-item:last-child { border-bottom: 0; }
 .voyage-track-item:hover,
 .voyage-track-item.active { background: rgba(214,183,122,.14); }
 .voyage-track-item.active { box-shadow: inset 3px 0 var(--sand); }
-.voyage-track-item button { padding: .7rem .6rem; }
+.voyage-track-item button { grid-column: 1; grid-row: 1; min-width: 0; padding: .7rem .25rem .7rem .6rem; }
 .voyage-track-item strong { display: block; font: .92rem var(--serif); color: var(--navy); }
 .voyage-track-item small { display: block; margin-top: .25rem; color: #72858a; font-size: .62rem; line-height: 1.45; }
 .voyage-card-link {
-  display: inline-block;
-  margin: 0 .6rem .65rem;
-  color: #a95824;
-  font-size: .62rem;
-  font-weight: 700;
-  letter-spacing: .04em;
+  grid-column: 2;
+  grid-row: 1;
+  align-self: end;
+  display: grid;
+  width: 1.65rem;
+  height: 1.65rem;
+  margin: 0 .42rem .46rem .15rem;
+  place-items: center;
+  border: 1px solid rgba(7,27,36,.12);
+  border-radius: 999px;
+  color: #71848a;
+  background: rgba(255,255,255,.4);
   text-decoration: none;
 }
+.voyage-card-link svg { width: .9rem; height: .9rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .voyage-card-link:hover,
-.voyage-card-link:focus-visible { color: #d84a1b; text-decoration: underline; text-underline-offset: .16em; }
+.voyage-card-link:focus-visible { border-color: #d84a1b; color: #d84a1b; background: rgba(216,74,27,.08); }
 .voyages-section .leaflet-tile-pane { filter: grayscale(.62) sepia(.12) saturate(.72) brightness(1.05) contrast(.94); }
 .voyages-section .leaflet-tooltip { border: 0; border-radius: .55rem; background: var(--navy); color: var(--white); box-shadow: 0 8px 20px rgba(0,0,0,.2); }
 

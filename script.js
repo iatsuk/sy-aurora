@@ -301,7 +301,12 @@
       const exportLink = document.createElement('a');
       exportLink.className = 'voyage-card-link';
       exportLink.href = `voyage-card.html?track=${encodeURIComponent(properties.source || String(index))}`;
-      exportLink.textContent = 'Export image ↗';
+      exportLink.setAttribute('aria-label', `Export or share an image for ${title}`);
+      exportLink.title = 'Export / share image';
+      exportLink.innerHTML = `
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+          <path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 12.5V20h14v-7.5"/>
+        </svg>`;
       item.append(button, exportLink);
       const record = { properties, year, groupId, layer, details, item, button, title, summary, group: null };
       button.addEventListener('click', () => selectRecord(record));
