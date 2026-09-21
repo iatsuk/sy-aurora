@@ -86,6 +86,8 @@
       trackResize: true
     }).setView(defaultView.center, defaultView.zoom, { animate: false });
 
+    map.attributionControl.setPrefix(false);
+
     const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
       minZoom: 3,
@@ -106,6 +108,7 @@
     let activeYear = 'all';
     let selectedRecord = null;
     let selectedGroup = null;
+    let selectedGroupDetails = null;
 
     const refreshMap = () => map.invalidateSize({ pan: false, animate: false });
     const trackYear = (properties) => {
@@ -204,9 +207,57 @@
       return details;
     };
 
+    const buildGroupDetails = (groupRecords) => {
+      const details = L.layerGroup();
+      if (!groupRecords.length) return details;
+
+      const endpoints = groupRecords.map((record) => {
+        const lines = geometryLines(record.feature?.geometry).filter((line) => line.length);
+        if (!lines.length) return null;
+        const lastLine = lines[lines.length - 1];
+        return {
+          start: lines[0][0],
+          end: lastLine[lastLine.length - 1]
+        };
+      });
+
+      const first = endpoints[0];
+      const last = endpoints[endpoints.length - 1];
+      if (!first || !last) return details;
+
+      const markerStyle = (radius, filled) => ({
+        radius,
+        color: relatedStyle.color,
+        weight: 2.2,
+        fillColor: filled ? relatedStyle.color : '#f5f0e6',
+        fillOpacity: 1
+      });
+
+      L.circleMarker([first.start[1], first.start[0]], markerStyle(6, false))
+        .bindTooltip('Start', { direction: 'top' })
+        .addTo(details);
+
+      endpoints.slice(0, -1).forEach((entry) => {
+        if (!entry) return;
+        L.circleMarker([entry.end[1], entry.end[0]], markerStyle(4.5, true))
+          .bindTooltip('Stopover', { direction: 'top' })
+          .addTo(details);
+      });
+
+      L.circleMarker([last.end[1], last.end[0]], markerStyle(6, true))
+        .bindTooltip('Finish', { direction: 'top' })
+        .addTo(details);
+
+      return details;
+    };
+
     const resetSelection = () => {
       selectedRecord = null;
       selectedGroup = null;
+      if (selectedGroupDetails) {
+        selectedGroupDetails.removeFrom(map);
+        selectedGroupDetails = null;
+      }
       records.forEach((record) => {
         record.layer.setStyle(inactiveStyle);
         record.details.removeFrom(map);
@@ -226,6 +277,8 @@
       group.button.setAttribute('aria-pressed', 'true');
       const visible = group.records.filter((record) => activeYear === 'all' || record.year === activeYear);
       visible.forEach((record) => record.layer.setStyle(relatedStyle));
+      selectedGroupDetails = buildGroupDetails(visible);
+      selectedGroupDetails.addTo(map);
       if (fit) fitLayers(visible.map((record) => record.layer), 10);
     };
 
@@ -312,7 +365,7 @@
           <path d="M12 15V3m0 0L7.5 7.5M12 3l4.5 4.5M5 12.5V20h14v-7.5"/>
         </svg>`;
       item.append(button, exportLink);
-      const record = { properties, year, groupId, layer, details, item, button, title, summary, group: null };
+      const record = { feature, properties, year, groupId, layer, details, item, button, title, summary, group: null };
       button.addEventListener('click', () => selectRecord(record));
       layer.on('click', () => selectRecord(record, false));
       layer.bindTooltip(`<strong>${escapeHtml(title)}</strong><br>${escapeHtml(summary)}`, { sticky: true });

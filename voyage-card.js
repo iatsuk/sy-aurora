@@ -52,6 +52,8 @@
     attributionControl: true
   }).setView([56.2, 10.7], 5);
 
+  map.attributionControl.setPrefix(false);
+
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
     minZoom: 3,
     maxZoom: 18,
