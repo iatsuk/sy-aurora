@@ -185,7 +185,9 @@ into two maps:
 
 - the left context map shows the voyage from its start through the end of the
   selected Passage / Range; earlier passages are blue and the current selection
-  is orange
+  is orange. Its start callout shows the local voyage-start date/time, while the
+  current-stop callout shows the accumulated voyage distance through the selected
+  passage/range plus the local arrival date/time
 - the right detail map keeps the normal close view, callouts, arrows and passage
   metrics for the selected Passage / Range
 
