@@ -88,6 +88,9 @@
 
     map.attributionControl.setPrefix(false);
 
+    const stopPane = map.createPane('voyage-stops');
+    stopPane.style.zIndex = '650';
+
     const tiles = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 18,
       minZoom: 3,
@@ -187,7 +190,8 @@
           color: activeStyle.color,
           weight: 2.4,
           fillColor: filled ? activeStyle.color : '#f5f0e6',
-          fillOpacity: 1
+          fillOpacity: 1,
+          pane: 'voyage-stops'
         }).bindTooltip(label, { direction: 'top' }).addTo(details);
       });
       (feature.properties?.day_marks || []).forEach((mark) => {
@@ -201,7 +205,8 @@
           color: activeStyle.color,
           weight: 2,
           fillColor: '#f5f0e6',
-          fillOpacity: 1
+          fillOpacity: 1,
+          pane: 'voyage-stops'
         }).bindTooltip(label, { direction: 'top' }).addTo(details);
       });
       return details;
@@ -225,26 +230,27 @@
       const last = endpoints[endpoints.length - 1];
       if (!first || !last) return details;
 
-      const markerStyle = (radius, filled) => ({
+      const markerStyle = (radius, filled, weight = 2.6) => ({
         radius,
         color: relatedStyle.color,
-        weight: 2.2,
+        weight,
         fillColor: filled ? relatedStyle.color : '#f5f0e6',
-        fillOpacity: 1
+        fillOpacity: 1,
+        pane: 'voyage-stops'
       });
 
-      L.circleMarker([first.start[1], first.start[0]], markerStyle(6, false))
+      L.circleMarker([first.start[1], first.start[0]], markerStyle(6.5, false))
         .bindTooltip('Start', { direction: 'top' })
         .addTo(details);
 
       endpoints.slice(0, -1).forEach((entry) => {
         if (!entry) return;
-        L.circleMarker([entry.end[1], entry.end[0]], markerStyle(4.5, true))
+        L.circleMarker([entry.end[1], entry.end[0]], markerStyle(5.2, false, 3))
           .bindTooltip('Stopover', { direction: 'top' })
           .addTo(details);
       });
 
-      L.circleMarker([last.end[1], last.end[0]], markerStyle(6, true))
+      L.circleMarker([last.end[1], last.end[0]], markerStyle(6.5, true))
         .bindTooltip('Finish', { direction: 'top' })
         .addTo(details);
 
@@ -404,7 +410,7 @@
           button.type = 'button';
           button.setAttribute('aria-pressed', 'false');
           button.innerHTML = `
-            <span>${escapeHtml(group.year)} · ${group.records.length} ${group.records.length === 1 ? 'leg' : 'legs'}</span>
+            <span>${escapeHtml(group.year)} · ${group.records.length} ${group.records.length === 1 ? 'passage' : 'passages'}</span>
             <strong>${escapeHtml(group.title)}</strong>
             <small>${escapeHtml([formatDateRange(starts[0], ends[ends.length - 1]), formatDistance(distance)].filter(Boolean).join(' · '))}</small>`;
           legs.className = 'voyage-group-legs';

@@ -57,7 +57,8 @@ button, select { font: inherit; }
   color: var(--navy);
   border-color: var(--sand);
 }
-.scope-options button:disabled { cursor: not-allowed; opacity: .4; }
+.scope-options button:disabled,
+.layout-options button:disabled { cursor: not-allowed; opacity: .4; }
 .range-controls { display: flex; gap: .45rem; align-items: end; }
 .range-controls select { min-width: 11rem; }
 .download-button {
@@ -84,6 +85,7 @@ main { padding: clamp(1rem, 3vw, 2.5rem); }
 .voyage-card[data-card-layout="portrait"] { width: min(760px, 100%); aspect-ratio: 4 / 5; }
 .voyage-card[data-card-layout="article"] { width: min(1120px, 100%); aspect-ratio: 8 / 5; }
 .voyage-card[data-card-layout="wide"] { width: min(1120px, 100%); aspect-ratio: 16 / 9; }
+.voyage-card[data-card-layout="wide-context"] { width: min(1120px, 100%); aspect-ratio: 16 / 9; }
 
 .card-heading {
   display: grid;
@@ -118,14 +120,38 @@ main { padding: clamp(1rem, 3vw, 2.5rem); }
   text-align: right;
 }
 
-.card-map {
+.card-map-stage {
   position: relative;
+  display: grid;
+  grid-template-columns: 1fr;
   min-height: 0;
   overflow: hidden;
   border-top: 1px solid rgba(255,255,255,.08);
   border-bottom: 1px solid var(--line);
   background: #d7ddd9;
   box-shadow: inset 0 0 0 1px rgba(7,27,36,.08);
+}
+.card-map-panel {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #d7ddd9;
+}
+.card-map-panel-context { display: none; }
+.voyage-card[data-card-layout="wide-context"] .card-map-stage {
+  grid-template-columns: minmax(0, 42fr) minmax(0, 58fr);
+}
+.voyage-card[data-card-layout="wide-context"] .card-map-panel-context {
+  display: block;
+  border-right: 2px solid rgba(7,27,36,.18);
+}
+.card-map {
+  position: absolute;
+  inset: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #d7ddd9;
 }
 .card-map .leaflet-tile-pane { opacity: .82; }
 .card-map .leaflet-container { background: #d7ddd9; }
@@ -135,6 +161,25 @@ main { padding: clamp(1rem, 3vw, 2.5rem); }
   font-size: 9px;
 }
 .card-map .leaflet-control-attribution a { color: var(--teal); }
+.card-map-caption {
+  display: none;
+  position: absolute;
+  z-index: 650;
+  top: .7rem;
+  left: .7rem;
+  padding: .34rem .58rem;
+  border: 1px solid rgba(255,255,255,.18);
+  border-radius: 999px;
+  background: rgba(7,27,36,.86);
+  color: var(--sand-soft);
+  font-size: .55rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  line-height: 1;
+  text-transform: uppercase;
+  pointer-events: none;
+}
+.voyage-card[data-card-layout="wide-context"] .card-map-caption { display: block; }
 .voyage-route-canvas {
   position: absolute;
   z-index: 500;
