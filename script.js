@@ -451,10 +451,11 @@
         const card = document.createElement('button');
         card.type = 'button';
         card.className = 'gallery-card';
-        card.setAttribute('aria-label', `Open ${item.title || item.file}`);
+        card.setAttribute('aria-label', `Open ${item.title || item.full || item.file}`);
+        const thumbnail = item.thumbnail || item.file;
         const visual = item.type === 'video'
           ? `<video src="${encodeURI(item.file)}" muted playsinline preload="metadata"></video>`
-          : `<img src="${encodeURI(item.file)}" loading="lazy" alt="${escapeAttr(item.alt || item.title || 'Aurora')}" />`;
+          : `<img src="${encodeURI(thumbnail)}" loading="lazy" alt="${escapeAttr(item.alt || item.title || 'Aurora')}"${item.width && item.height ? ` width="${item.width}" height="${item.height}"` : ''} />`;
         card.innerHTML = `${visual}<span class="media-label"><span>${escapeHtml(item.title || item.category || 'Aurora')}</span><span>${item.type === 'video' ? 'VIDEO' : ''}</span></span>`;
         card.addEventListener('click', () => open(index));
         grid.appendChild(card);
@@ -465,10 +466,11 @@
       currentIndex = index;
       const item = visibleMedia[currentIndex];
       if (!item || !dialog || !stage) return;
+      const full = item.full || item.file;
       stage.innerHTML = item.type === 'video'
         ? `<video src="${encodeURI(item.file)}" controls autoplay playsinline></video>`
-        : `<img src="${encodeURI(item.file)}" alt="${escapeAttr(item.alt || item.title || 'Aurora')}" />`;
-      caption.textContent = [item.title, item.caption].filter(Boolean).join(' · ');
+        : `<img src="${encodeURI(full)}" alt="${escapeAttr(item.alt || item.title || 'Aurora')}" />`;
+      caption.textContent = [item.title, item.album, item.caption].filter(Boolean).join(' · ');
       if (!dialog.open) dialog.showModal();
     }
 

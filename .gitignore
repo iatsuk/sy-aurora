@@ -1,0 +1,9 @@
+# Local/private camera originals. Keep the README as documentation.
+media/gallery-source/*
+!media/gallery-source/README.md
+
+# Local build/editor noise.
+.DS_Store
+**/.DS_Store
+__pycache__/
+*.pyc
