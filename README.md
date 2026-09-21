@@ -128,6 +128,7 @@ The format buttons are ordered story-first:
 - **1080 × 1350** portrait feed post
 - **1600 × 1000** article landscape
 - **1920 × 1080** widescreen
+- **1920 × 1080** widescreen with voyage context
 
 The card includes the selected route geometry, direction arrows, the date range,
 **local start time at the departure position**, recorded distance, recorded
@@ -178,6 +179,21 @@ Map fitting uses adaptive padding based on the preview size and allows one extra
 level compared with the earlier exporter, reducing unnecessary empty space around
 shorter tracks while retaining room for callouts.
 
+The **Wide + context** layout is available for Passage and Range scopes when the
+selected track belongs to a multi-passage voyage. It splits the 1920 × 1080 card
+into two maps:
+
+- the left context map shows the voyage from its start through the end of the
+  selected Passage / Range; earlier passages are blue and the current selection
+  is orange
+- the right detail map keeps the normal close view, callouts, arrows and passage
+  metrics for the selected Passage / Range
+
+Future passages after the selected range are not shown on the context map. The
+context map deliberately stays sparse, with only the voyage start and current
+stop marked. Whole-voyage scope falls back to the ordinary Wide layout because
+the two panels would otherwise duplicate the same information.
+
 The exporter reuses the main Aurora stylesheet and the same navy / sand / paper
 visual language as the site. The Story layout is the default, and the dark
 footer has a minimum height so the Aurora Voyage Atlas strip remains a deliberate
@@ -196,6 +212,12 @@ python3 -m http.server 8000
 
 Then open `http://localhost:8000/voyage-card.html` or use the share/export icon
 in the voyage atlas.
+
+The main-site voyage atlas keeps overview mode clean, but when a whole voyage is
+selected it shows a dedicated high-z-index marker layer: a hollow Start marker,
+small hollow Stopover markers at passage boundaries, and a filled Finish marker.
+The Leaflet prefix is disabled on both voyage maps while OpenStreetMap attribution
+remains visible.
 
 ## Live position
 

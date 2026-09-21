@@ -1,6 +1,8 @@
 (() => {
   const card = document.querySelector('[data-card]');
   const mapNode = document.querySelector('#voyage-card-map');
+  const contextMapNode = document.querySelector('#voyage-context-map');
+  const detailCaption = document.querySelector('[data-detail-caption]');
   const trackSelect = document.querySelector('[data-track-select]');
   const rangeControls = document.querySelector('[data-range-controls]');
   const rangeStart = document.querySelector('[data-range-start]');
@@ -13,15 +15,17 @@
   const status = document.querySelector('[data-status]');
   const download = document.querySelector('[data-download]');
 
-  if (!card || !mapNode || !trackSelect || !rangeStart || !rangeEnd || !window.L) return;
+  if (!card || !mapNode || !contextMapNode || !trackSelect || !rangeStart || !rangeEnd || !window.L) return;
 
   const formats = {
     story: { width: 1080, height: 1920 },
     portrait: { width: 1080, height: 1350 },
     article: { width: 1600, height: 1000 },
-    wide: { width: 1920, height: 1080 }
+    wide: { width: 1920, height: 1080 },
+    'wide-context': { width: 1920, height: 1080 }
   };
   const routeColor = '#d84a1b';
+  const contextColor = '#2f6f9f';
   const paperColor = '#f3efe6';
   const navyColor = '#071b24';
   const sandColor = '#ead9b7';
@@ -37,6 +41,11 @@
   routeCanvas.className = 'voyage-route-canvas';
   routeCanvas.setAttribute('aria-hidden', 'true');
   mapNode.append(routeCanvas);
+
+  const contextRouteCanvas = document.createElement('canvas');
+  contextRouteCanvas.className = 'voyage-route-canvas';
+  contextRouteCanvas.setAttribute('aria-hidden', 'true');
+  contextMapNode.append(contextRouteCanvas);
 
   const map = L.map(mapNode, {
     zoomControl: false,
@@ -61,7 +70,28 @@
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
+  const contextMap = L.map(contextMapNode, {
+    zoomControl: false,
+    scrollWheelZoom: false,
+    dragging: false,
+    doubleClickZoom: false,
+    boxZoom: false,
+    keyboard: false,
+    touchZoom: false,
+    zoomAnimation: false,
+    fadeAnimation: false,
+    markerZoomAnimation: false,
+    attributionControl: false
+  }).setView([56.2, 10.7], 5);
+
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    minZoom: 3,
+    maxZoom: 18,
+    crossOrigin: true
+  }).addTo(contextMap);
+
   map.on('moveend zoomend resize', () => requestAnimationFrame(drawRouteOverlay));
+  contextMap.on('moveend zoomend resize', () => requestAnimationFrame(drawContextOverlay));
 
   fetch('data/tracks.geojson', { cache: 'no-store' })
     .then((response) => {
@@ -164,7 +194,8 @@
       const summary = aggregateSelection(activeSelection);
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `${slug(summary.title || 'aurora-voyage')}-${format.width}x${format.height}.png`;
+      const layoutSuffix = activeLayout === 'wide-context' ? '-context' : '';
+      link.download = `${slug(summary.title || 'aurora-voyage')}${layoutSuffix}-${format.width}x${format.height}.png`;
       document.body.appendChild(link);
       link.click();
       const objectUrl = link.href;
@@ -266,17 +297,40 @@
     activeScope = scope;
     scopeButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.scope === scope)));
     rangeControls.hidden = scope !== 'range';
+    updateContextLayoutAvailability();
     if (render) renderSelection();
   }
 
   function setLayout(layout, refresh = true) {
-    activeLayout = layout;
-    card.dataset.cardLayout = layout;
-    layoutButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.layout === layout)));
+    const contextUnavailable = layout === 'wide-context' &&
+      (activeScope === 'voyage' || currentVoyageEntries().length < 2);
+    activeLayout = contextUnavailable ? 'wide' : layout;
+    card.dataset.cardLayout = activeLayout;
+    layoutButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.layout === activeLayout)));
+    updateMapCaptions();
     if (refresh) {
       updateUrl();
       window.setTimeout(refreshMapAndRoute, 60);
     }
+  }
+
+  function updateContextLayoutAvailability() {
+    const button = layoutButtons.find((candidate) => candidate.dataset.layout === 'wide-context');
+    const disabled = !features.length || activeScope === 'voyage' || currentVoyageEntries().length < 2;
+    if (button) button.disabled = disabled;
+    if (disabled && activeLayout === 'wide-context') {
+      activeLayout = 'wide';
+      card.dataset.cardLayout = activeLayout;
+      layoutButtons.forEach((candidate) =>
+        candidate.setAttribute('aria-pressed', String(candidate.dataset.layout === activeLayout))
+      );
+    }
+    updateMapCaptions();
+  }
+
+  function updateMapCaptions() {
+    if (!detailCaption) return;
+    detailCaption.textContent = activeScope === 'range' ? 'Current range' : 'Current passage';
   }
 
   function normalizeRange(changed) {
@@ -318,6 +372,7 @@
     ].filter(Boolean).join(' · ');
 
     if (voyageName) voyageName.textContent = summary.footer;
+    updateContextLayoutAvailability();
     updateUrl();
     refreshMapAndRoute();
   }
@@ -373,7 +428,16 @@
     requestAnimationFrame(() => {
       map.invalidateSize({ pan: false, animate: false });
       fitSelection();
-      requestAnimationFrame(() => requestAnimationFrame(drawRouteOverlay));
+
+      if (activeLayout === 'wide-context') {
+        contextMap.invalidateSize({ pan: false, animate: false });
+        fitContextSelection();
+      }
+
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        drawRouteOverlay();
+        drawContextOverlay();
+      }));
     });
   }
 
@@ -384,6 +448,35 @@
       const padding = Math.max(28, Math.min(42, Math.round(shortSide * .06)));
       map.fitBounds(bounds, { padding: [padding, padding], maxZoom: 13, animate: false });
     }
+  }
+
+  function contextVoyageState() {
+    const voyageEntries = currentVoyageEntries();
+    const selected = selectedEntries();
+    if (!voyageEntries.length || !selected.length) return null;
+
+    const selectedIndexes = new Set(selected.map((entry) => entry.index));
+    const lastSelectedIndex = selected[selected.length - 1].index;
+    const endPosition = voyageEntries.findIndex((entry) => entry.index === lastSelectedIndex);
+    if (endPosition < 0) return null;
+
+    return {
+      entries: voyageEntries.slice(0, endPosition + 1),
+      selectedIndexes
+    };
+  }
+
+  function fitContextSelection() {
+    if (activeLayout !== 'wide-context') return;
+    const state = contextVoyageState();
+    if (!state) return;
+    const featuresToFit = state.entries.map((entry) => entry.feature);
+    const bounds = selectionBounds(featuresToFit);
+    if (!bounds?.isValid()) return;
+
+    const shortSide = Math.min(contextMapNode.clientWidth || 0, contextMapNode.clientHeight || 0);
+    const padding = Math.max(20, Math.min(34, Math.round(shortSide * .055)));
+    contextMap.fitBounds(bounds, { padding: [padding, padding], maxZoom: 10, animate: false });
   }
 
   function selectionBounds(selection) {
@@ -464,6 +557,79 @@
     // Compact passage metrics remain all-or-none and use one common offset for the whole selection.
     const occupiedBoxes = drawPassageBoundaries(context);
     if (activeSelection.length > 1) drawPassageLabels(context, occupiedBoxes);
+  }
+
+  function drawContextOverlay() {
+    const width = contextMapNode.clientWidth;
+    const height = contextMapNode.clientHeight;
+    const context = contextRouteCanvas.getContext('2d');
+
+    if (activeLayout !== 'wide-context' || !width || !height) {
+      contextRouteCanvas.width = Math.max(1, contextRouteCanvas.width);
+      contextRouteCanvas.height = Math.max(1, contextRouteCanvas.height);
+      context.clearRect(0, 0, contextRouteCanvas.width, contextRouteCanvas.height);
+      return;
+    }
+
+    const state = contextVoyageState();
+    if (!state) return;
+
+    const density = Math.min(window.devicePixelRatio || 1, 2);
+    const targetWidth = Math.round(width * density);
+    const targetHeight = Math.round(height * density);
+    if (contextRouteCanvas.width !== targetWidth || contextRouteCanvas.height !== targetHeight) {
+      contextRouteCanvas.width = targetWidth;
+      contextRouteCanvas.height = targetHeight;
+    }
+    contextRouteCanvas.style.width = `${width}px`;
+    contextRouteCanvas.style.height = `${height}px`;
+
+    context.setTransform(density, 0, 0, density, 0, 0);
+    context.clearRect(0, 0, width, height);
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+
+    const previousEntries = state.entries.filter((entry) => !state.selectedIndexes.has(entry.index));
+    const currentEntries = state.entries.filter((entry) => state.selectedIndexes.has(entry.index));
+
+    drawContextLines(context, previousEntries, contextColor, 4.2);
+    drawContextLines(context, currentEntries, routeColor, 5.4);
+
+    const firstEndpoints = featureEndpoints(state.entries[0]?.feature);
+    const lastEndpoints = featureEndpoints(state.entries[state.entries.length - 1]?.feature);
+    if (firstEndpoints) drawContextPoint(context, firstEndpoints.start, contextColor, false);
+    if (lastEndpoints) drawContextPoint(context, lastEndpoints.end, routeColor, true);
+  }
+
+  function drawContextLines(context, entries, color, width) {
+    context.strokeStyle = color;
+    context.lineWidth = width;
+    entries.forEach((entry) => {
+      geometryLines(entry.feature?.geometry)
+        .filter((line) => line.length >= 2)
+        .forEach((line) => {
+          context.beginPath();
+          line.forEach((coordinate, index) => {
+            const point = contextMap.latLngToContainerPoint([coordinate[1], coordinate[0]]);
+            if (index === 0) context.moveTo(point.x, point.y);
+            else context.lineTo(point.x, point.y);
+          });
+          context.stroke();
+        });
+    });
+  }
+
+  function drawContextPoint(context, coordinate, color, filled) {
+    const point = contextMap.latLngToContainerPoint([coordinate[1], coordinate[0]]);
+    context.save();
+    context.beginPath();
+    context.arc(point.x, point.y, 5.5, 0, Math.PI * 2);
+    context.fillStyle = filled ? color : paperColor;
+    context.fill();
+    context.strokeStyle = color;
+    context.lineWidth = 2.5;
+    context.stroke();
+    context.restore();
   }
 
   function featureEndpoints(feature) {
@@ -1035,9 +1201,19 @@
   async function settleMap() {
     map.invalidateSize({ pan: false, animate: false });
     fitSelection();
+
+    if (activeLayout === 'wide-context') {
+      contextMap.invalidateSize({ pan: false, animate: false });
+      fitContextSelection();
+    }
+
     await nextFrames(3);
-    await waitForTiles();
+    const tileWaits = [waitForTiles(mapNode)];
+    if (activeLayout === 'wide-context') tileWaits.push(waitForTiles(contextMapNode));
+    await Promise.all(tileWaits);
+
     drawRouteOverlay();
+    drawContextOverlay();
     await nextFrames(2);
   }
 
@@ -1055,8 +1231,8 @@
     });
   }
 
-  function waitForTiles() {
-    const images = [...mapNode.querySelectorAll('.leaflet-tile')];
+  function waitForTiles(node) {
+    const images = [...node.querySelectorAll('.leaflet-tile')];
     return Promise.all(images.map((image) =>
       image.complete
         ? Promise.resolve()
