@@ -378,7 +378,9 @@
   function fitSelection() {
     const bounds = selectionBounds(activeSelection);
     if (bounds?.isValid()) {
-      map.fitBounds(bounds, { padding: [64, 64], maxZoom: 12, animate: false });
+      const shortSide = Math.min(mapNode.clientWidth || 0, mapNode.clientHeight || 0);
+      const padding = Math.max(28, Math.min(42, Math.round(shortSide * .06)));
+      map.fitBounds(bounds, { padding: [padding, padding], maxZoom: 13, animate: false });
     }
   }
 
@@ -456,8 +458,8 @@
         drawDirectionArrow(context, point, position.bearing);
       });
 
-    // Dark terminal / stopover callouts have priority and use centred vertical lanes.
-    // Compact passage metrics are all-or-none: if one cannot fit cleanly, hide the set.
+    // Dark terminal / stopover callouts have priority and move only as much as needed vertically.
+    // Compact passage metrics remain all-or-none and use one common offset for the whole selection.
     const occupiedBoxes = drawPassageBoundaries(context);
     if (activeSelection.length > 1) drawPassageLabels(context, occupiedBoxes);
   }
@@ -533,30 +535,39 @@
   }
 
   function drawPassageLabels(context, darkBoxes) {
-    const placements = activeSelection.map((feature) => buildPassageLabelPlacement(context, feature));
+    // Keep all passage metrics visually consistent. Try a small set of common
+    // offsets for the entire selection; never move just one label independently.
+    const offsets = [-14, 14, -20, 20];
+    const darkSafety = 3;
+    const lightSafety = 2;
 
-    // Keep the map visually consistent: either every selected passage gets its
-    // compact metric label, or none of them do.
-    if (placements.some((placement) => !placement)) return;
+    for (const offset of offsets) {
+      const placements = activeSelection.map((feature) =>
+        buildPassageLabelPlacement(context, feature, offset)
+      );
+      if (placements.some((placement) => !placement)) continue;
 
-    const safetyMargin = 8;
-    const paddedDarkBoxes = darkBoxes.map((box) => expandRect(box, safetyMargin));
-    const paddedLightBoxes = placements.map((placement) => expandRect(placement.rect, safetyMargin / 2));
+      const collidesWithDark = placements.some((placement) =>
+        darkBoxes.some((box) => rectsIntersect(placement.rect, expandRect(box, darkSafety)))
+      );
+      if (collidesWithDark) continue;
 
-    const collidesWithDark = placements.some((placement) =>
-      paddedDarkBoxes.some((box) => rectsIntersect(placement.rect, box))
-    );
-    if (collidesWithDark) return;
+      const paddedLightBoxes = placements.map((placement) =>
+        expandRect(placement.rect, lightSafety)
+      );
+      const collidesWithLight = paddedLightBoxes.some((box, index) =>
+        paddedLightBoxes.some((other, otherIndex) =>
+          otherIndex > index && rectsIntersect(box, other)
+        )
+      );
+      if (collidesWithLight) continue;
 
-    const collidesWithLight = paddedLightBoxes.some((box, index) =>
-      paddedLightBoxes.some((other, otherIndex) => otherIndex > index && rectsIntersect(box, other))
-    );
-    if (collidesWithLight) return;
-
-    placements.forEach((placement) => drawPassageLabel(context, placement));
+      placements.forEach((placement) => drawPassageLabel(context, placement));
+      return;
+    }
   }
 
-  function buildPassageLabelPlacement(context, feature) {
+  function buildPassageLabelPlacement(context, feature, offset) {
     const properties = feature.properties || {};
     const distance = Number(properties.distance_nm);
     const duration = Number(properties.duration_hours);
@@ -592,7 +603,6 @@
 
     const labelWidth = Math.ceil(Math.max(primaryWidth, secondaryWidth)) + 18;
     const labelHeight = 34;
-    const offset = -19;
 
     const labelCentreX = centrePoint.x - Math.sin(angle) * offset;
     const labelCentreY = centrePoint.y + Math.cos(angle) * offset;
@@ -607,9 +617,10 @@
       height: boxHeight
     };
 
-    const inside = rect.x >= 8 && rect.y >= 8 &&
-      rect.x + rect.width <= mapNode.clientWidth - 8 &&
-      rect.y + rect.height <= mapNode.clientHeight - 8;
+    const edgeMargin = 4;
+    const inside = rect.x >= edgeMargin && rect.y >= edgeMargin &&
+      rect.x + rect.width <= mapNode.clientWidth - edgeMargin &&
+      rect.y + rect.height <= mapNode.clientHeight - edgeMargin;
     if (!inside) return null;
 
     return {
@@ -740,40 +751,25 @@
     const secondaryWidth = context.measureText(secondary || '').width;
     const boxWidth = Math.ceil(Math.max(primaryWidth, secondaryWidth) + 22);
     const boxHeight = secondary ? 38 : 24;
-    const gap = 12;
-    const laneGap = 8;
+    const pointGap = 9;
+    const collisionGap = 2;
 
     let x = point.x - boxWidth / 2;
     x = Math.max(6, Math.min(x, mapNode.clientWidth - boxWidth - 6));
 
-    const verticalOffsets = [
-      -(boxHeight + gap),
-      gap,
-      -(boxHeight * 2 + gap + laneGap),
-      gap + boxHeight + laneGap,
-      -(boxHeight * 3 + gap + laneGap * 2),
-      gap + (boxHeight + laneGap) * 2
-    ];
+    const preferredAbove = point.y - boxHeight - pointGap;
+    const preferredBelow = point.y + pointGap;
+    const candidates = [
+      resolveBoundaryVerticalPosition(x, preferredAbove, boxWidth, boxHeight, -1, occupiedBoxes, collisionGap),
+      resolveBoundaryVerticalPosition(x, preferredBelow, boxWidth, boxHeight, 1, occupiedBoxes, collisionGap)
+    ].filter(Boolean);
 
-    const candidates = verticalOffsets.map((offset, priority) => {
-      const y = point.y + offset;
-      const rect = { x, y, width: boxWidth, height: boxHeight };
-      const inside = y >= 6 && y + boxHeight <= mapNode.clientHeight - 6;
-      const overlap = inside
-        ? occupiedBoxes.reduce((total, box) => total + overlapArea(rect, box), 0)
-        : Number.POSITIVE_INFINITY;
-      return { rect, overlap, priority };
-    });
+    let chosen = candidates
+      .sort((a, b) => (a.displacement - b.displacement) || (a.direction - b.direction))[0];
 
-    let chosen = candidates.find((candidate) => candidate.overlap === 0);
     if (!chosen) {
-      chosen = candidates
-        .filter((candidate) => Number.isFinite(candidate.overlap))
-        .sort((a, b) => (a.overlap - b.overlap) || (a.priority - b.priority))[0];
-    }
-    if (!chosen) {
-      const y = Math.max(6, Math.min(point.y - boxHeight - gap, mapNode.clientHeight - boxHeight - 6));
-      chosen = { rect: { x, y, width: boxWidth, height: boxHeight }, overlap: 0, priority: 0 };
+      const y = Math.max(6, Math.min(preferredAbove, mapNode.clientHeight - boxHeight - 6));
+      chosen = { rect: { x, y, width: boxWidth, height: boxHeight }, displacement: 0, direction: -1 };
     }
 
     const { y } = chosen.rect;
@@ -795,8 +791,30 @@
     }
     context.restore();
 
-    const markerRect = { x: point.x - 9, y: point.y - 9, width: 18, height: 18 };
-    return expandRect(unionRects(chosen.rect, markerRect), 5);
+    return chosen.rect;
+  }
+
+  function resolveBoundaryVerticalPosition(x, preferredY, width, height, direction, occupiedBoxes, gap) {
+    let y = preferredY;
+    const maxIterations = occupiedBoxes.length + 2;
+
+    for (let iteration = 0; iteration < maxIterations; iteration += 1) {
+      const rect = { x, y, width, height };
+      const collision = occupiedBoxes.find((box) =>
+        rectsIntersect(rect, expandRect(box, gap))
+      );
+      if (!collision) {
+        const inside = y >= 6 && y + height <= mapNode.clientHeight - 6;
+        return inside
+          ? { rect, displacement: Math.abs(y - preferredY), direction }
+          : null;
+      }
+
+      if (direction < 0) y = collision.y - height - gap;
+      else y = collision.y + collision.height + gap;
+    }
+
+    return null;
   }
 
   function roundedRect(context, x, y, width, height, radius) {

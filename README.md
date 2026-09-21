@@ -162,16 +162,21 @@ for example `P2 · 79.2 NM total` / `Stopover 7h 55m`. Multi-day stopovers omit
 minutes to keep the callout short.
 
 Dark terminal/stopover callouts are horizontally centred on their recorded point.
-If two dark callouts would overlap, the later one moves only into another vertical
-lane above or below its point; it is never shifted sideways.
+If two dark callouts would overlap, the later one is moved only the minimum distance
+needed vertically, with a 2 px clearance. The renderer evaluates both above and below
+the point and chooses the closer valid position; callouts are never shifted sideways.
 
-Light passage-metric labels use an all-or-none rule for the selected Range / Whole
-voyage. Their fixed midpoint positions are calculated first with an 8 px safety
-margin. If any label would leave the map, touch a dark callout, or collide with
-another light label, **none of the light labels are drawn** for that selection.
-This avoids inconsistent maps where only one or two passages happen to keep their
-metric label. This uses only recorded GPX metadata — place
+Light passage-metric labels still use an all-or-none rule for the selected Range /
+Whole voyage, but the whole set may choose one of a few shared mirrored offsets from
+the route. Every label therefore stays visually consistent with every other label.
+The first common offset that keeps all labels inside the map, at least 3 px away from
+dark callouts, and clear of each other is used. If no common placement works,
+**none of the light labels are drawn** for that selection. This uses only recorded GPX metadata — place
 names are deliberately not invented or reverse-geocoded.
+
+Map fitting uses adaptive padding based on the preview size and allows one extra zoom
+level compared with the earlier exporter, reducing unnecessary empty space around
+shorter tracks while retaining room for callouts.
 
 The exporter reuses the main Aurora stylesheet and the same navy / sand / paper
 visual language as the site. The Story layout is the default, and the dark
