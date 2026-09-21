@@ -378,7 +378,7 @@
   function fitSelection() {
     const bounds = selectionBounds(activeSelection);
     if (bounds?.isValid()) {
-      map.fitBounds(bounds, { padding: [38, 38], maxZoom: 12, animate: false });
+      map.fitBounds(bounds, { padding: [64, 64], maxZoom: 12, animate: false });
     }
   }
 
@@ -456,8 +456,8 @@
         drawDirectionArrow(context, point, position.bearing);
       });
 
-    // Terminal / stopover callouts have priority. Passage labels are placed
-    // afterwards and search for a free position around these occupied boxes.
+    // Terminal / stopover callouts have priority. Their geometry stays regular;
+    // passage labels remain centred along-track and only move perpendicular to it.
     const occupiedBoxes = drawPassageBoundaries(context);
     if (activeSelection.length > 1) drawPassageLabels(context, occupiedBoxes);
   }
@@ -486,8 +486,7 @@
       firstEndpoints.start,
       'START',
       formatLocalDateTime(firstProperties.start, firstProperties.start_timezone),
-      { filled: false, below: true },
-      occupiedBoxes
+      { filled: false }
     );
     if (startBox) occupiedBoxes.push(startBox);
 
@@ -508,8 +507,7 @@
           endpoints.end,
           `AFTER ${currentPassage.toUpperCase()} · ${cumulativeDistance.toFixed(1)} NM total`,
           stopDuration ? `Stopover ${stopDuration}` : 'Stopover',
-          { filled: true, below: index % 2 === 0 },
-          occupiedBoxes
+          { filled: true }
         );
         if (stopBox) occupiedBoxes.push(stopBox);
 
@@ -524,8 +522,7 @@
       lastEndpoints.end,
       `FINISH · ${cumulativeDistance.toFixed(1)} NM`,
       formatLocalDateTime(lastProperties.end, lastProperties.end_timezone),
-      { filled: true, below: false },
-      occupiedBoxes
+      { filled: true }
     );
     if (finishBox) occupiedBoxes.push(finishBox);
 
@@ -545,16 +542,29 @@
       if (parts.length < 2) return;
 
       const label = parts.join(' · ');
-      const placement = findPassageLabelPlacement(context, feature, index, label, occupiedBoxes);
+      const placement = findPassageLabelPlacement(context, feature, label, occupiedBoxes);
       if (!placement) return;
       drawPassageLabel(context, placement, label);
       occupiedBoxes.push(expandRect(placement.rect, 4));
     });
   }
 
-  function findPassageLabelPlacement(context, feature, index, label, occupiedBoxes) {
+  function findPassageLabelPlacement(context, feature, label, occupiedBoxes) {
     const lines = geometryLines(feature?.geometry).filter((line) => line.length >= 2);
     if (!lines.length) return null;
+
+    const before = pointAlongGeometry(lines, .455);
+    const centre = pointAlongGeometry(lines, .5);
+    const after = pointAlongGeometry(lines, .545);
+    if (!before || !centre || !after) return null;
+
+    const beforePoint = map.latLngToContainerPoint([before.lat, before.lon]);
+    const centrePoint = map.latLngToContainerPoint([centre.lat, centre.lon]);
+    const afterPoint = map.latLngToContainerPoint([after.lat, after.lon]);
+
+    let angle = Math.atan2(afterPoint.y - beforePoint.y, afterPoint.x - beforePoint.x);
+    if (angle > Math.PI / 2) angle -= Math.PI;
+    if (angle < -Math.PI / 2) angle += Math.PI;
 
     const font = '700 10px Manrope, system-ui, sans-serif';
     context.save();
@@ -563,78 +573,47 @@
     context.restore();
     const labelHeight = 21;
 
-    const fractions = [.5, .44, .56, .38, .62, .32, .68];
-    const sides = index % 2 === 0 ? [-1, 1] : [1, -1];
-    const offsets = [14, 26, 38];
-    let bestFree = null;
+    // Keep every label at the exact midpoint. Collision avoidance is deliberately
+    // constrained to perpendicular movement so the whole voyage remains regular.
+    const offsets = [-16, 16, -30, 30];
     let bestFallback = null;
 
-    fractions.forEach((fraction) => {
-      const before = pointAlongGeometry(lines, Math.max(.02, fraction - .045));
-      const centre = pointAlongGeometry(lines, fraction);
-      const after = pointAlongGeometry(lines, Math.min(.98, fraction + .045));
-      if (!before || !centre || !after) return;
+    for (const offset of offsets) {
+      const labelCentreX = centrePoint.x - Math.sin(angle) * offset;
+      const labelCentreY = centrePoint.y + Math.cos(angle) * offset;
+      const cos = Math.abs(Math.cos(angle));
+      const sin = Math.abs(Math.sin(angle));
+      const boxWidth = labelWidth * cos + labelHeight * sin;
+      const boxHeight = labelWidth * sin + labelHeight * cos;
+      const rect = {
+        x: labelCentreX - boxWidth / 2,
+        y: labelCentreY - boxHeight / 2,
+        width: boxWidth,
+        height: boxHeight
+      };
 
-      const beforePoint = map.latLngToContainerPoint([before.lat, before.lon]);
-      const centrePoint = map.latLngToContainerPoint([centre.lat, centre.lon]);
-      const afterPoint = map.latLngToContainerPoint([after.lat, after.lon]);
+      const inside = rect.x >= 6 && rect.y >= 6 &&
+        rect.x + rect.width <= mapNode.clientWidth - 6 &&
+        rect.y + rect.height <= mapNode.clientHeight - 6;
+      if (!inside) continue;
 
-      const firstAngle = Math.atan2(centrePoint.y - beforePoint.y, centrePoint.x - beforePoint.x);
-      const secondAngle = Math.atan2(afterPoint.y - centrePoint.y, afterPoint.x - centrePoint.x);
-      const bend = Math.abs(normalizeAngle(secondAngle - firstAngle));
-      const span = Math.hypot(afterPoint.x - beforePoint.x, afterPoint.y - beforePoint.y);
+      const overlap = occupiedBoxes.reduce((total, occupied) => total + overlapArea(rect, occupied), 0);
+      const candidate = {
+        x: centrePoint.x,
+        y: centrePoint.y,
+        angle,
+        offset,
+        width: labelWidth,
+        height: labelHeight,
+        rect,
+        overlap
+      };
 
-      let angle = Math.atan2(afterPoint.y - beforePoint.y, afterPoint.x - beforePoint.x);
-      if (angle > Math.PI / 2) angle -= Math.PI;
-      if (angle < -Math.PI / 2) angle += Math.PI;
+      if (overlap === 0) return candidate;
+      if (!bestFallback || overlap < bestFallback.overlap) bestFallback = candidate;
+    }
 
-      sides.forEach((side) => {
-        offsets.forEach((offsetMagnitude) => {
-          const offset = offsetMagnitude * side;
-          const labelCentreX = centrePoint.x - Math.sin(angle) * offset;
-          const labelCentreY = centrePoint.y + Math.cos(angle) * offset;
-          const cos = Math.abs(Math.cos(angle));
-          const sin = Math.abs(Math.sin(angle));
-          const boxWidth = labelWidth * cos + labelHeight * sin;
-          const boxHeight = labelWidth * sin + labelHeight * cos;
-          const rect = {
-            x: labelCentreX - boxWidth / 2,
-            y: labelCentreY - boxHeight / 2,
-            width: boxWidth,
-            height: boxHeight
-          };
-
-          const inside = rect.x >= 6 && rect.y >= 6 &&
-            rect.x + rect.width <= mapNode.clientWidth - 6 &&
-            rect.y + rect.height <= mapNode.clientHeight - 6;
-          if (!inside) return;
-
-          const overlap = occupiedBoxes.reduce((total, occupied) => total + overlapArea(rect, occupied), 0);
-          const score = span - bend * 75 - Math.abs(fraction - .5) * 30 - (offsetMagnitude - 14) * .9;
-          const candidate = {
-            x: centrePoint.x,
-            y: centrePoint.y,
-            angle,
-            offset,
-            width: labelWidth,
-            height: labelHeight,
-            rect,
-            score
-          };
-
-          if (overlap === 0) {
-            if (!bestFree || candidate.score > bestFree.score) bestFree = candidate;
-          } else {
-            const fallbackScore = candidate.score - overlap * 3;
-            if (!bestFallback || fallbackScore > bestFallback.fallbackScore) {
-              bestFallback = { ...candidate, fallbackScore };
-            }
-          }
-        });
-      });
-    });
-
-    return bestFree || bestFallback;
+    return bestFallback;
   }
 
   function drawPassageLabel(context, placement, label) {
@@ -664,13 +643,6 @@
     const text = shortLegName(value);
     const match = text.match(/(?:passage|leg)\s+(\d+)/i);
     return match ? `Passage ${match[1]}` : `Passage ${fallbackIndex + 1}`;
-  }
-
-  function normalizeAngle(value) {
-    let angle = value;
-    while (angle > Math.PI) angle -= Math.PI * 2;
-    while (angle < -Math.PI) angle += Math.PI * 2;
-    return angle;
   }
 
   function expandRect(rect, amount) {
@@ -741,7 +713,7 @@
     context.restore();
   }
 
-  function drawBoundaryCallout(context, coordinate, primary, secondary, options = {}, occupiedBoxes = []) {
+  function drawBoundaryCallout(context, coordinate, primary, secondary, options = {}) {
     const point = map.latLngToContainerPoint([coordinate[1], coordinate[0]]);
     drawEndpoint(context, coordinate, Boolean(options.filled), 6);
 
@@ -752,58 +724,37 @@
     const primaryWidth = context.measureText(primary || '').width;
     context.font = secondaryFont;
     const secondaryWidth = context.measureText(secondary || '').width;
-    const boxWidth = Math.ceil(Math.max(primaryWidth, secondaryWidth) + 18);
+    const boxWidth = Math.ceil(Math.max(primaryWidth, secondaryWidth) + 22);
     const boxHeight = secondary ? 38 : 24;
-    const gap = 11;
+    const gap = 12;
 
-    const positions = options.below
-      ? [
-          { side: 1, vertical: 1 },
-          { side: -1, vertical: 1 },
-          { side: 1, vertical: -1 },
-          { side: -1, vertical: -1 }
-        ]
-      : [
-          { side: 1, vertical: -1 },
-          { side: -1, vertical: -1 },
-          { side: 1, vertical: 1 },
-          { side: -1, vertical: 1 }
-        ];
+    let x = point.x - boxWidth / 2;
+    let y = point.y - boxHeight - gap;
 
-    const candidates = positions.map(({ side, vertical }, priority) => {
-      let x = side > 0 ? point.x + gap : point.x - boxWidth - gap;
-      let y = vertical > 0 ? point.y + gap : point.y - boxHeight - gap;
-      x = Math.max(6, Math.min(x, mapNode.clientWidth - boxWidth - 6));
-      y = Math.max(6, Math.min(y, mapNode.clientHeight - boxHeight - 6));
-      const rect = { x, y, width: boxWidth, height: boxHeight };
-      const overlap = occupiedBoxes.reduce((total, occupied) => total + overlapArea(rect, occupied), 0);
-      return { rect, overlap, priority };
-    });
-
-    const chosen = candidates
-      .slice()
-      .sort((a, b) => (a.overlap - b.overlap) || (a.priority - b.priority))[0];
-    const { x, y } = chosen.rect;
+    // Horizontal centring is kept even close to the edge whenever possible.
+    x = Math.max(6, Math.min(x, mapNode.clientWidth - boxWidth - 6));
+    if (y < 6) y = point.y + gap;
+    y = Math.max(6, Math.min(y, mapNode.clientHeight - boxHeight - 6));
 
     roundedRect(context, x, y, boxWidth, boxHeight, 6);
     context.fillStyle = 'rgba(7,27,36,.92)';
     context.fill();
 
-    context.textAlign = 'left';
+    context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.font = primaryFont;
     context.fillStyle = sandColor;
-    context.fillText(primary || '', x + 9, y + (secondary ? 12 : boxHeight / 2));
+    context.fillText(primary || '', x + boxWidth / 2, y + (secondary ? 12 : boxHeight / 2));
 
     if (secondary) {
       context.font = secondaryFont;
       context.fillStyle = 'rgba(255,253,248,.76)';
-      context.fillText(secondary, x + 9, y + 27);
+      context.fillText(secondary, x + boxWidth / 2, y + 27);
     }
     context.restore();
 
     const markerRect = { x: point.x - 9, y: point.y - 9, width: 18, height: 18 };
-    return expandRect(unionRects(chosen.rect, markerRect), 5);
+    return expandRect(unionRects({ x, y, width: boxWidth, height: boxHeight }, markerRect), 5);
   }
 
   function roundedRect(context, x, y, width, height, radius) {
