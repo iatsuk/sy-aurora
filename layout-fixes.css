@@ -352,6 +352,17 @@
 .voyage-track-item button { padding: .7rem .6rem; }
 .voyage-track-item strong { display: block; font: .92rem var(--serif); color: var(--navy); }
 .voyage-track-item small { display: block; margin-top: .25rem; color: #72858a; font-size: .62rem; line-height: 1.45; }
+.voyage-card-link {
+  display: inline-block;
+  margin: 0 .6rem .65rem;
+  color: #a95824;
+  font-size: .62rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+  text-decoration: none;
+}
+.voyage-card-link:hover,
+.voyage-card-link:focus-visible { color: #d84a1b; text-decoration: underline; text-underline-offset: .16em; }
 .voyages-section .leaflet-tile-pane { filter: grayscale(.62) sepia(.12) saturate(.72) brightness(1.05) contrast(.94); }
 .voyages-section .leaflet-tooltip { border: 0; border-radius: .55rem; background: var(--navy); color: var(--white); box-shadow: 0 8px 20px rgba(0,0,0,.2); }
 

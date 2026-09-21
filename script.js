@@ -298,7 +298,11 @@
       button.type = 'button';
       button.setAttribute('aria-pressed', 'false');
       button.innerHTML = `<strong>${escapeHtml(title)}</strong><small>${escapeHtml(summary)}</small>`;
-      item.append(button);
+      const exportLink = document.createElement('a');
+      exportLink.className = 'voyage-card-link';
+      exportLink.href = `voyage-card.html?track=${encodeURIComponent(properties.source || String(index))}`;
+      exportLink.textContent = 'Export image ↗';
+      item.append(button, exportLink);
       const record = { properties, year, groupId, layer, details, item, button, title, summary, group: null };
       button.addEventListener('click', () => selectRecord(record));
       layer.on('click', () => selectRecord(record, false));

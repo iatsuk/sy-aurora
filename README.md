@@ -103,6 +103,29 @@ The script calculates distance from the original geometry, preserves separate GP
 
 If no private GPX source files are present, the builder leaves the existing published GeoJSON unchanged rather than replacing it with an empty archive.
 
+### Export a voyage image
+
+Every individual leg in the voyage atlas has an **Export image ↗** link. It opens
+`voyage-card.html`, which reads the same committed `data/tracks.geojson` as
+the main map and renders a branded Aurora map card.
+
+The export page offers three output formats:
+
+- **Article:** 1600 × 1000 px
+- **Portrait:** 1200 × 1500 px
+- **Widescreen:** 1920 × 1080 px
+
+Choose a passage, choose the format and press **Download PNG**. The card includes
+the track, start/finish points, available 12:00 UTC marks, a few direction
+arrows, date range, distance and elapsed time. It does not infer weather, engine
+use, sail use or other facts that are not present in the GPX-derived GeoJSON.
+
+The PNG is generated entirely in the browser with Leaflet and html2canvas; no
+rendered voyage images need to be committed to the repository. Run the site
+through an HTTP server (for example `python3 -m http.server 8000`) rather than
+opening the HTML file directly, because both the atlas and exporter fetch
+`data/tracks.geojson`.
+
 ## Live position
 
 The page currently uses a VesselFinder AIS embed for MMSI `218032280` and links to MarineTraffic as a second public AIS source. Garmin MapShare remains available at `https://share.garmin.com/AS424` for satellite tracking when AIS coverage is absent.
