@@ -17,6 +17,7 @@ import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from typing import Iterable
 
 try:
@@ -150,7 +151,10 @@ def point_timezone(point: Point) -> str | None:
     return TIMEZONE_FINDER.timezone_at(lng=point.lon, lat=point.lat)
 
 
-def timing(segments: list[list[Point]]) -> tuple[str | None, str | None, float | None, list[dict]]:
+def timing(
+    segments: list[list[Point]],
+    local_timezone: str | None,
+) -> tuple[str | None, str | None, float | None, list[dict]]:
     timed: list[tuple[int, Point, datetime, float]] = []
     total_distance = 0.0
     for segment_index, points in enumerate(segments):
@@ -170,10 +174,20 @@ def timing(segments: list[list[Point]]) -> tuple[str | None, str | None, float |
         if current[0] == previous[0] and current[2] > previous[2]
     ]
     maximum_gap = min(max((statistics.median(intervals) if intervals else 0) * 6, 3600), 21600)
+
+    # Add a mark only when one continuous recording crosses local midnight.
+    # Using the departure timezone makes the rule stable and keeps one-day
+    # passages free of arbitrary midday markers.
+    try:
+        zone = ZoneInfo(local_timezone) if local_timezone else timezone.utc
+    except ZoneInfoNotFoundError:
+        zone = timezone.utc
+
     marks = []
-    target_time = datetime.combine(start.date(), time(hour=12), tzinfo=timezone.utc)
-    if target_time <= start:
-        target_time += timedelta(days=1)
+    local_start = start.astimezone(zone)
+    target_local = datetime.combine(local_start.date() + timedelta(days=1), time.min, tzinfo=zone)
+    target_time = target_local.astimezone(timezone.utc)
+
     while target_time < end:
         for previous, current in zip(timed, timed[1:]):
             previous_segment, previous_point, previous_time, previous_distance = previous
@@ -187,6 +201,8 @@ def timing(segments: list[list[Point]]) -> tuple[str | None, str | None, float |
             longitude_delta = (current_point.lon - previous_point.lon + 180) % 360 - 180
             marks.append({
                 "time": format_utc(target_time),
+                "local_date": target_local.date().isoformat(),
+                "timezone": local_timezone or "UTC",
                 "coordinates": [
                     round((previous_point.lon + longitude_delta * fraction + 180) % 360 - 180, 6),
                     round(previous_point.lat + (current_point.lat - previous_point.lat) * fraction, 6),
@@ -194,9 +210,11 @@ def timing(segments: list[list[Point]]) -> tuple[str | None, str | None, float |
                 "distance_nm": round((previous_distance + fraction * (current_distance - previous_distance)) / NM_M, 2),
             })
             break
-        target_time += timedelta(days=1)
-    return format_utc(start), format_utc(end), duration, marks
 
+        target_local = datetime.combine(target_local.date() + timedelta(days=1), time.min, tzinfo=zone)
+        target_time = target_local.astimezone(timezone.utc)
+
+    return format_utc(start), format_utc(end), duration, marks
 
 def display_name(path: Path) -> str:
     name = re.sub(r"^\d{4}[.-]\d{2}[.-]\d{2}\s*[-–—]?\s*", "", path.stem).strip()
@@ -212,9 +230,9 @@ def title_from_slug(value: str) -> str:
 def build_feature(segments: list[list[Point]], tolerance_m: float, source: Path) -> dict:
     relative_source = source.relative_to(SOURCE).as_posix() if source.is_relative_to(SOURCE) else source.name
     path_parts = Path(relative_source).parts
-    start, end, duration, day_marks = timing(segments)
     start_timezone = point_timezone(segments[0][0])
     end_timezone = point_timezone(segments[-1][-1])
+    start, end, duration, day_marks = timing(segments, start_timezone)
     start_year = start[:4] if start and re.fullmatch(r"20\d{2}", start[:4]) else None
     year = path_parts[0] if path_parts and re.fullmatch(r"20\d{2}", path_parts[0]) else start_year
 

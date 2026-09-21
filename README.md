@@ -105,7 +105,7 @@ Generate the lighter web representation with:
 python3 tools/build_tracks.py --tolerance 20
 ```
 
-The script calculates distance from the original geometry, preserves separate GPX segments rather than drawing false lines across recording gaps, keeps available start/end times, duration and daily noon marks, stores the IANA timezone at both the start and finish coordinates (`start_timezone` / `end_timezone`), and simplifies only the published geometry with Ramer-Douglas-Peucker. Folder names become voyage groups in the map, while years become filters. A tolerance around `15–30 m` is a useful starting point for dense Navionics tracks. The source GPX is never modified.
+The script calculates distance from the original geometry, preserves separate GPX segments rather than drawing false lines across recording gaps, keeps available start/end times and duration, adds a day mark only when a continuous recording crosses **local midnight in the departure timezone**, stores the IANA timezone at both the start and finish coordinates (`start_timezone` / `end_timezone`), and simplifies only the published geometry with Ramer-Douglas-Peucker. Folder names become voyage groups in the map, while years become filters. A tolerance around `15–30 m` is a useful starting point for dense Navionics tracks. The source GPX is never modified.
 
 If no private GPX source files are present, the builder leaves the existing published GeoJSON unchanged rather than replacing it with an empty archive.
 
@@ -128,23 +128,33 @@ The format buttons are ordered portrait-first:
 - **1600 × 1000** article landscape
 - **1920 × 1080** widescreen
 
-The card includes the selected route geometry, start and finish, available
-12:00 UTC marks, direction arrows, the date range, **local start time at the departure
-position**, recorded distance, recorded duration and average speed. For a range or whole voyage,
+The card includes the selected route geometry, direction arrows, the date range,
+**local start time at the departure position**, recorded distance, recorded
+duration and average speed. A continuous multi-day leg gets a sparse marker at
+local midnight; ordinary same-day legs get no arbitrary day marker. For a range or whole voyage,
 distance and recorded durations are summed across the selected legs; average
 speed is calculated from those recorded durations, so time spent between GPX
 legs is not counted as underway time.
 
 Local time is formatted from the IANA `start_timezone` stored in GeoJSON, so
 historical daylight-saving rules are applied by the browser instead of using the
-viewer's current timezone or a fixed UTC offset. Existing Aurora delivery legs
+viewer's current timezone or a fixed UTC offset. Midnight marks store their
+`local_date` and timezone alongside the interpolated UTC timestamp. Existing Aurora delivery legs
 are tagged with `Europe/Copenhagen` or `Europe/Berlin` as appropriate.
 
-The route overlay is drawn into a dedicated canvas above the Leaflet tiles and
-the same card DOM is used for both preview and PNG capture. This avoids the
+For a range or whole-voyage export, the map also marks every leg boundary.
+Overall Start/Finish labels show local date/time; intermediate stops show the
+completed leg, cumulative distance, arrival time and next departure time. This
+uses only recorded GPX metadata — place names are deliberately not invented or
+reverse-geocoded.
+
+The exporter reuses the main Aurora stylesheet and the same navy / sand / paper
+visual language as the site. The route overlay is drawn into a dedicated canvas
+above the Leaflet tiles and the same card DOM is used for both preview and PNG
+capture. This avoids the
 SVG-transform offset that can occur when html2canvas captures Leaflet vector
-paths. The export page intentionally does not apply a CSS colour filter to map
-tiles, so the browser preview and downloaded image use the same map styling.
+paths. Map tiles are muted with simple opacity rather than an export-only image filter,
+so the browser preview and downloaded image keep the same visual treatment.
 
 Run the site through an HTTP server, for example:
 
