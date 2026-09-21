@@ -71,9 +71,9 @@
 
   async function initVoyageMap(mapNode) {
     const defaultView = { center: [56.2, 10.7], zoom: 5 };
-    const inactiveStyle = { color: '#376e73', weight: 2.5, opacity: .42 };
-    const relatedStyle = { color: '#8a6c42', weight: 3.2, opacity: .72 };
-    const activeStyle = { color: '#d6b77a', weight: 4.8, opacity: 1 };
+    const inactiveStyle = { color: '#006a73', weight: 3.3, opacity: .92 };
+    const relatedStyle = { color: '#a95824', weight: 4.1, opacity: .96 };
+    const activeStyle = { color: '#d84a1b', weight: 5.4, opacity: 1 };
     const map = L.map(mapNode, {
       zoomControl: false,
       scrollWheelZoom: true,
