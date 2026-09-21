@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Marcellus&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIINfQ3ynDgqZ+4IUN4qS0whxU6TS3MZas=" crossorigin="">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
   <link rel="stylesheet" href="styles.css">
   <link rel="stylesheet" href="layout-fixes.css">
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
@@ -85,7 +85,7 @@
       </div>
       <div class="live-layout live-layout-primary">
         <div class="ais-frame reveal">
-          <iframe src="https://www.vesselfinder.com/aismap?mmsi=218032280" title="Aurora live AIS position on VesselFinder" loading="eager" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          <iframe src="vesselfinder.html" title="Aurora live AIS position via VesselFinder" loading="eager" referrerpolicy="no-referrer-when-downgrade"></iframe>
           <p class="embed-fallback">If the embedded AIS map is unavailable, open <a href="https://www.vesselfinder.com/vessels/details/218032280" target="_blank" rel="noreferrer">VesselFinder</a> or <a href="https://www.marinetraffic.com/en/ais/details/ships/shipid:8833999/mmsi:218032280/imo:0/vessel:RASSVET" target="_blank" rel="noreferrer">MarineTraffic</a>.</p>
         </div>
         <div class="live-card reveal">
@@ -132,13 +132,11 @@
         </article>
       </div>
 
-      <div class="current-specs reveal">
+      <div class="current-specs reveal" aria-label="Aurora identity and current particulars">
         <div><span>Hull / sail no.</span><strong>165</strong><small>built 1972</small></div>
-        <div><span>Engine</span><strong>Yanmar 3GM30</strong><small>2003</small></div>
-        <div><span>Drive train</span><strong>Shaft / propeller / seal</strong><small>renewed 2026</small></div>
-        <div><span>Rigging</span><strong>Standing + running</strong><small>renewed 2025</small></div>
-        <div><span>Self steering</span><strong>Windvane</strong><small>installed 2024</small></div>
-        <div><span>AIS</span><strong>em-trak B924</strong><small>NMEA 0183 / 2000</small></div>
+        <div><span>Craft ID</span><strong>DK-BBZ20860E424</strong><small>HIN / CIN</small></div>
+        <div><span>Engine</span><strong>Yanmar 3GM30</strong><small>installed 2003</small></div>
+        <div><span>Home port</span><strong>Kiel</strong><small>Germany</small></div>
       </div>
     </section>
 
@@ -206,7 +204,7 @@
       </div>
       <div class="gallery-filters reveal" data-gallery-filters></div>
       <div class="gallery-grid reveal" data-gallery-grid>
-        <div class="gallery-empty"><strong>Gallery ready for Aurora media.</strong><p>Place files in <code>media/gallery/</code> and run <code>python3 tools/build_gallery.py</code>.</p></div>
+        <div class="gallery-empty"><strong>Gallery ready for Aurora media.</strong><p>Place camera originals in <code>media/gallery-source/</code> and run <code>python3 tools/build_gallery.py</code>.</p></div>
       </div>
     </section>
 
