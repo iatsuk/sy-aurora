@@ -456,8 +456,8 @@
         drawDirectionArrow(context, point, position.bearing);
       });
 
-    // Terminal / stopover callouts have priority. Their geometry stays regular;
-    // passage labels remain centred along-track and only move perpendicular to it.
+    // Dark terminal / stopover callouts have priority and use centred vertical lanes.
+    // Compact passage metrics are all-or-none: if one cannot fit cleanly, hide the set.
     const occupiedBoxes = drawPassageBoundaries(context);
     if (activeSelection.length > 1) drawPassageLabels(context, occupiedBoxes);
   }
@@ -486,7 +486,8 @@
       firstEndpoints.start,
       'START',
       formatLocalDateTime(firstProperties.start, firstProperties.start_timezone),
-      { filled: false }
+      { filled: false },
+      occupiedBoxes
     );
     if (startBox) occupiedBoxes.push(startBox);
 
@@ -500,14 +501,15 @@
       if (index < activeSelection.length - 1) {
         const nextFeature = activeSelection[index + 1];
         const nextProperties = nextFeature.properties || {};
-        const currentPassage = passageName(properties.name, index);
+        const currentPassage = passageCode(properties.name, index);
         const stopDuration = formatStopDuration(properties.end, nextProperties.start);
         const stopBox = drawBoundaryCallout(
           context,
           endpoints.end,
-          `AFTER ${currentPassage.toUpperCase()} · ${cumulativeDistance.toFixed(1)} NM total`,
+          `${currentPassage} · ${cumulativeDistance.toFixed(1)} NM total`,
           stopDuration ? `Stopover ${stopDuration}` : 'Stopover',
-          { filled: true }
+          { filled: true },
+          occupiedBoxes
         );
         if (stopBox) occupiedBoxes.push(stopBox);
 
@@ -522,34 +524,44 @@
       lastEndpoints.end,
       `FINISH · ${cumulativeDistance.toFixed(1)} NM`,
       formatLocalDateTime(lastProperties.end, lastProperties.end_timezone),
-      { filled: true }
+      { filled: true },
+      occupiedBoxes
     );
     if (finishBox) occupiedBoxes.push(finishBox);
 
     return occupiedBoxes;
   }
 
-  function drawPassageLabels(context, occupiedBoxes) {
-    activeSelection.forEach((feature, index) => {
-      const properties = feature.properties || {};
-      const distance = Number(properties.distance_nm);
-      const duration = Number(properties.duration_hours);
-      const parts = [
-        passageName(properties.name, index),
-        Number.isFinite(distance) ? `${distance.toFixed(1)} NM` : '',
-        Number.isFinite(duration) ? formatDurationCompact(duration) : ''
-      ].filter(Boolean);
-      if (parts.length < 2) return;
+  function drawPassageLabels(context, darkBoxes) {
+    const placements = activeSelection.map((feature) => buildPassageLabelPlacement(context, feature));
 
-      const label = parts.join(' · ');
-      const placement = findPassageLabelPlacement(context, feature, label, occupiedBoxes);
-      if (!placement) return;
-      drawPassageLabel(context, placement, label);
-      occupiedBoxes.push(expandRect(placement.rect, 4));
-    });
+    // Keep the map visually consistent: either every selected passage gets its
+    // compact metric label, or none of them do.
+    if (placements.some((placement) => !placement)) return;
+
+    const safetyMargin = 8;
+    const paddedDarkBoxes = darkBoxes.map((box) => expandRect(box, safetyMargin));
+    const paddedLightBoxes = placements.map((placement) => expandRect(placement.rect, safetyMargin / 2));
+
+    const collidesWithDark = placements.some((placement) =>
+      paddedDarkBoxes.some((box) => rectsIntersect(placement.rect, box))
+    );
+    if (collidesWithDark) return;
+
+    const collidesWithLight = paddedLightBoxes.some((box, index) =>
+      paddedLightBoxes.some((other, otherIndex) => otherIndex > index && rectsIntersect(box, other))
+    );
+    if (collidesWithLight) return;
+
+    placements.forEach((placement) => drawPassageLabel(context, placement));
   }
 
-  function findPassageLabelPlacement(context, feature, label, occupiedBoxes) {
+  function buildPassageLabelPlacement(context, feature) {
+    const properties = feature.properties || {};
+    const distance = Number(properties.distance_nm);
+    const duration = Number(properties.duration_hours);
+    if (!Number.isFinite(distance) || !Number.isFinite(duration)) return null;
+
     const lines = geometryLines(feature?.geometry).filter((line) => line.length >= 2);
     if (!lines.length) return null;
 
@@ -566,57 +578,54 @@
     if (angle > Math.PI / 2) angle -= Math.PI;
     if (angle < -Math.PI / 2) angle += Math.PI;
 
-    const font = '700 10px Manrope, system-ui, sans-serif';
+    const line1 = `${distance.toFixed(1)} NM`;
+    const line2 = formatDurationCompact(duration);
+    const primaryFont = '700 10px Manrope, system-ui, sans-serif';
+    const secondaryFont = '600 9px Manrope, system-ui, sans-serif';
+
     context.save();
-    context.font = font;
-    const labelWidth = Math.ceil(context.measureText(label).width) + 16;
+    context.font = primaryFont;
+    const primaryWidth = context.measureText(line1).width;
+    context.font = secondaryFont;
+    const secondaryWidth = context.measureText(line2).width;
     context.restore();
-    const labelHeight = 21;
 
-    // Keep every label at the exact midpoint. Collision avoidance is deliberately
-    // constrained to perpendicular movement so the whole voyage remains regular.
-    const offsets = [-16, 16, -30, 30];
-    let bestFallback = null;
+    const labelWidth = Math.ceil(Math.max(primaryWidth, secondaryWidth)) + 18;
+    const labelHeight = 34;
+    const offset = -19;
 
-    for (const offset of offsets) {
-      const labelCentreX = centrePoint.x - Math.sin(angle) * offset;
-      const labelCentreY = centrePoint.y + Math.cos(angle) * offset;
-      const cos = Math.abs(Math.cos(angle));
-      const sin = Math.abs(Math.sin(angle));
-      const boxWidth = labelWidth * cos + labelHeight * sin;
-      const boxHeight = labelWidth * sin + labelHeight * cos;
-      const rect = {
-        x: labelCentreX - boxWidth / 2,
-        y: labelCentreY - boxHeight / 2,
-        width: boxWidth,
-        height: boxHeight
-      };
+    const labelCentreX = centrePoint.x - Math.sin(angle) * offset;
+    const labelCentreY = centrePoint.y + Math.cos(angle) * offset;
+    const cos = Math.abs(Math.cos(angle));
+    const sin = Math.abs(Math.sin(angle));
+    const boxWidth = labelWidth * cos + labelHeight * sin;
+    const boxHeight = labelWidth * sin + labelHeight * cos;
+    const rect = {
+      x: labelCentreX - boxWidth / 2,
+      y: labelCentreY - boxHeight / 2,
+      width: boxWidth,
+      height: boxHeight
+    };
 
-      const inside = rect.x >= 6 && rect.y >= 6 &&
-        rect.x + rect.width <= mapNode.clientWidth - 6 &&
-        rect.y + rect.height <= mapNode.clientHeight - 6;
-      if (!inside) continue;
+    const inside = rect.x >= 8 && rect.y >= 8 &&
+      rect.x + rect.width <= mapNode.clientWidth - 8 &&
+      rect.y + rect.height <= mapNode.clientHeight - 8;
+    if (!inside) return null;
 
-      const overlap = occupiedBoxes.reduce((total, occupied) => total + overlapArea(rect, occupied), 0);
-      const candidate = {
-        x: centrePoint.x,
-        y: centrePoint.y,
-        angle,
-        offset,
-        width: labelWidth,
-        height: labelHeight,
-        rect,
-        overlap
-      };
-
-      if (overlap === 0) return candidate;
-      if (!bestFallback || overlap < bestFallback.overlap) bestFallback = candidate;
-    }
-
-    return bestFallback;
+    return {
+      x: centrePoint.x,
+      y: centrePoint.y,
+      angle,
+      offset,
+      width: labelWidth,
+      height: labelHeight,
+      rect,
+      line1,
+      line2
+    };
   }
 
-  function drawPassageLabel(context, placement, label) {
+  function drawPassageLabel(context, placement) {
     context.save();
     context.translate(placement.x, placement.y);
     context.rotate(placement.angle);
@@ -631,18 +640,23 @@
     context.lineWidth = 1;
     context.stroke();
 
-    context.font = '700 10px Manrope, system-ui, sans-serif';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
+
+    context.font = '700 10px Manrope, system-ui, sans-serif';
     context.fillStyle = navyColor;
-    context.fillText(label, 0, placement.offset + .5);
+    context.fillText(placement.line1, 0, placement.offset - 6);
+
+    context.font = '600 9px Manrope, system-ui, sans-serif';
+    context.fillStyle = 'rgba(7,27,36,.72)';
+    context.fillText(placement.line2, 0, placement.offset + 8);
     context.restore();
   }
 
-  function passageName(value, fallbackIndex) {
+  function passageCode(value, fallbackIndex) {
     const text = shortLegName(value);
     const match = text.match(/(?:passage|leg)\s+(\d+)/i);
-    return match ? `Passage ${match[1]}` : `Passage ${fallbackIndex + 1}`;
+    return match ? `P${match[1]}` : `P${fallbackIndex + 1}`;
   }
 
   function expandRect(rect, amount) {
@@ -713,7 +727,7 @@
     context.restore();
   }
 
-  function drawBoundaryCallout(context, coordinate, primary, secondary, options = {}) {
+  function drawBoundaryCallout(context, coordinate, primary, secondary, options = {}, occupiedBoxes = []) {
     const point = map.latLngToContainerPoint([coordinate[1], coordinate[0]]);
     drawEndpoint(context, coordinate, Boolean(options.filled), 6);
 
@@ -727,14 +741,42 @@
     const boxWidth = Math.ceil(Math.max(primaryWidth, secondaryWidth) + 22);
     const boxHeight = secondary ? 38 : 24;
     const gap = 12;
+    const laneGap = 8;
 
     let x = point.x - boxWidth / 2;
-    let y = point.y - boxHeight - gap;
-
-    // Horizontal centring is kept even close to the edge whenever possible.
     x = Math.max(6, Math.min(x, mapNode.clientWidth - boxWidth - 6));
-    if (y < 6) y = point.y + gap;
-    y = Math.max(6, Math.min(y, mapNode.clientHeight - boxHeight - 6));
+
+    const verticalOffsets = [
+      -(boxHeight + gap),
+      gap,
+      -(boxHeight * 2 + gap + laneGap),
+      gap + boxHeight + laneGap,
+      -(boxHeight * 3 + gap + laneGap * 2),
+      gap + (boxHeight + laneGap) * 2
+    ];
+
+    const candidates = verticalOffsets.map((offset, priority) => {
+      const y = point.y + offset;
+      const rect = { x, y, width: boxWidth, height: boxHeight };
+      const inside = y >= 6 && y + boxHeight <= mapNode.clientHeight - 6;
+      const overlap = inside
+        ? occupiedBoxes.reduce((total, box) => total + overlapArea(rect, box), 0)
+        : Number.POSITIVE_INFINITY;
+      return { rect, overlap, priority };
+    });
+
+    let chosen = candidates.find((candidate) => candidate.overlap === 0);
+    if (!chosen) {
+      chosen = candidates
+        .filter((candidate) => Number.isFinite(candidate.overlap))
+        .sort((a, b) => (a.overlap - b.overlap) || (a.priority - b.priority))[0];
+    }
+    if (!chosen) {
+      const y = Math.max(6, Math.min(point.y - boxHeight - gap, mapNode.clientHeight - boxHeight - 6));
+      chosen = { rect: { x, y, width: boxWidth, height: boxHeight }, overlap: 0, priority: 0 };
+    }
+
+    const { y } = chosen.rect;
 
     roundedRect(context, x, y, boxWidth, boxHeight, 6);
     context.fillStyle = 'rgba(7,27,36,.92)';
@@ -754,7 +796,7 @@
     context.restore();
 
     const markerRect = { x: point.x - 9, y: point.y - 9, width: 18, height: 18 };
-    return expandRect(unionRects({ x, y, width: boxWidth, height: boxHeight }, markerRect), 5);
+    return expandRect(unionRects(chosen.rect, markerRect), 5);
   }
 
   function roundedRect(context, x, y, width, height, radius) {

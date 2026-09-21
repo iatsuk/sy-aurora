@@ -144,22 +144,33 @@ viewer's current timezone or a fixed UTC offset. Midnight marks store their
 `local_date` and timezone alongside the interpolated UTC timestamp. Existing Aurora delivery legs
 are tagged with `Europe/Copenhagen` or `Europe/Berlin` as appropriate.
 
-For a range or whole-voyage export, each passage gets a compact label placed along
-a relatively straight part near the middle of its route, for example
-`Passage 2 · 33.9 NM · 8h 26m`. Labels are rotated with the route but always kept
-upright and offset from the orange line.
+For a range or whole-voyage export, passage metrics are shown as compact two-line
+labels at the exact midpoint of each route:
+
+```text
+33.9 NM
+8h 26m
+```
+
+The passage number is intentionally omitted there because the dark terminal callout
+already carries the compact `P1`, `P2`, ... identifier. Labels stay aligned with
+the route and use one fixed offset from the orange line.
 
 The map also marks every passage boundary. Overall Start/Finish labels keep local
-date/time. Intermediate boundaries describe the stopover after the completed passage,
-for example `AFTER PASSAGE 2 · 79.2 NM total` / `Stopover 7h 55m`. Multi-day
-stopovers omit minutes to keep the callout short.
+date/time. Intermediate stopovers use a compact passage code to save map space,
+for example `P2 · 79.2 NM total` / `Stopover 7h 55m`. Multi-day stopovers omit
+minutes to keep the callout short.
 
-The label layout deliberately favours visual regularity over aggressive collision
-avoidance. Dark terminal/stopover callouts are horizontally centred on their recorded
-point and normally sit above it. Inline passage labels stay at the exact midpoint of
-their passage and remain aligned with the route; if they collide with a dark callout,
-they can only flip to the other side of the route or move slightly farther away from
-it. They are never shifted forward or backward along the passage. This uses only recorded GPX metadata — place
+Dark terminal/stopover callouts are horizontally centred on their recorded point.
+If two dark callouts would overlap, the later one moves only into another vertical
+lane above or below its point; it is never shifted sideways.
+
+Light passage-metric labels use an all-or-none rule for the selected Range / Whole
+voyage. Their fixed midpoint positions are calculated first with an 8 px safety
+margin. If any label would leave the map, touch a dark callout, or collide with
+another light label, **none of the light labels are drawn** for that selection.
+This avoids inconsistent maps where only one or two passages happen to keep their
+metric label. This uses only recorded GPX metadata — place
 names are deliberately not invented or reverse-geocoded.
 
 The exporter reuses the main Aurora stylesheet and the same navy / sand / paper
