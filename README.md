@@ -190,7 +190,8 @@ into two maps:
   passage/range plus the local arrival date/time. Intermediate passage boundaries
   are marked with small stopover circles, direction arrows are drawn along each
   meaningful passage, and a short perpendicular mileage tick is added at every
-  100 NM of cumulative voyage distance
+  100 NM of cumulative voyage distance. Each tick is labelled with its cumulative
+  value, for example `100 NM`, `200 NM`, `300 NM`, and so on
 - the right detail map keeps the normal close view, callouts, arrows and passage
   metrics for the selected Passage / Range
 

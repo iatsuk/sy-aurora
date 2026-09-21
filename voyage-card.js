@@ -735,7 +735,7 @@
         const position = pointAlongGeometry(lines, fraction);
         if (position) {
           const point = contextMap.latLngToContainerPoint([position.lat, position.lon]);
-          drawContextMileageTick(context, point, position.bearing, color);
+          drawContextMileageTick(context, point, position.bearing, color, nextMilestone);
         }
         nextMilestone += 100;
       }
@@ -744,7 +744,7 @@
     });
   }
 
-  function drawContextMileageTick(context, point, bearing, color) {
+  function drawContextMileageTick(context, point, bearing, color, milestone) {
     context.save();
     context.translate(point.x, point.y);
     context.rotate(bearing * Math.PI / 180);
@@ -762,6 +762,26 @@
     context.strokeStyle = color;
     context.lineWidth = 2;
     context.stroke();
+    context.restore();
+
+    const label = `${milestone} NM`;
+    const font = '700 8px Manrope, system-ui, sans-serif';
+    context.save();
+    context.font = font;
+    context.textAlign = 'center';
+    context.textBaseline = 'bottom';
+
+    const textWidth = context.measureText(label).width;
+    const halfWidth = textWidth / 2 + 3;
+    const x = Math.max(halfWidth + 4, Math.min(point.x, contextMapNode.clientWidth - halfWidth - 4));
+    const y = Math.max(12, point.y - 10);
+
+    context.lineJoin = 'round';
+    context.strokeStyle = 'rgba(243,239,230,.96)';
+    context.lineWidth = 3.5;
+    context.strokeText(label, x, y);
+    context.fillStyle = navyColor;
+    context.fillText(label, x, y);
     context.restore();
   }
 
