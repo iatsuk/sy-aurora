@@ -187,7 +187,10 @@ into two maps:
   selected Passage / Range; earlier passages are blue and the current selection
   is orange. Its start callout shows the local voyage-start date/time, while the
   current-stop callout shows the accumulated voyage distance through the selected
-  passage/range plus the local arrival date/time
+  passage/range plus the local arrival date/time. Intermediate passage boundaries
+  are marked with small stopover circles, direction arrows are drawn along each
+  meaningful passage, and a short perpendicular mileage tick is added at every
+  100 NM of cumulative voyage distance
 - the right detail map keeps the normal close view, callouts, arrows and passage
   metrics for the selected Passage / Range
 
