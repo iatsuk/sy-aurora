@@ -31,7 +31,7 @@
 
   addFooterOwner();
   addRassvetReference();
-  repairLeafletStylesheet().finally(initVoyageMapWhenVisible);
+  initVoyageMapWhenVisible();
   initGallery();
 
   function addFooterOwner() {
@@ -50,29 +50,6 @@
     note.className = 'transition-reference';
     note.innerHTML = 'The complete 2023–2026 record of the Ohlson 29 <a href="https://iatsuk.github.io/sy-rassvet/" target="_blank" rel="noreferrer"><strong>Rassvet</strong> ↗</a> is preserved on its own site.';
     copy.appendChild(note);
-  }
-
-  function repairLeafletStylesheet() {
-    const href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    const integrity = 'sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=';
-    const oldLink = [...document.querySelectorAll('link[rel="stylesheet"]')]
-      .find((link) => link.href.startsWith(href));
-
-    if (oldLink?.integrity === integrity) return Promise.resolve();
-    oldLink?.remove();
-
-    return new Promise((resolve) => {
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = href;
-      link.integrity = integrity;
-      link.crossOrigin = 'anonymous';
-      link.dataset.leafletRepair = 'true';
-      link.addEventListener('load', resolve, { once: true });
-      link.addEventListener('error', resolve, { once: true });
-      document.head.appendChild(link);
-      window.setTimeout(resolve, 1800);
-    });
   }
 
   function initVoyageMapWhenVisible() {
@@ -395,7 +372,10 @@
       if (!response.ok) throw new Error(`tracks.geojson: ${response.status}`);
       const data = await response.json();
       const features = (data.features || []).filter((feature) => ['LineString', 'MultiLineString'].includes(feature.geometry?.type));
-      if (!features.length) return;
+      if (!features.length) {
+        hideArchiveSection(section, '#voyages');
+        return;
+      }
 
       features.forEach(createRecord);
       renderGroups();
@@ -412,14 +392,24 @@
       }, 100);
     } catch (error) {
       console.warn('Unable to load voyage archive', error);
+      hideArchiveSection(section, '#voyages');
     }
+  }
+
+  function hideArchiveSection(section, href) {
+    if (section) section.hidden = true;
+    document.querySelector(`.site-nav a[href="${href}"]`)?.setAttribute('hidden', '');
   }
 
   function initGallery() {
     const media = Array.isArray(window.AURORA_MEDIA) ? window.AURORA_MEDIA : [];
     const grid = document.querySelector('[data-gallery-grid]');
     const filters = document.querySelector('[data-gallery-filters]');
-    if (!grid || !media.length) return;
+    if (!grid) return;
+    if (!media.length) {
+      hideArchiveSection(grid.closest('.gallery-section'), '#gallery');
+      return;
+    }
 
     const categories = ['All', ...new Set(media.map((item) => item.category || 'Other'))];
     let active = 'All';
@@ -451,6 +441,9 @@
         const card = document.createElement('button');
         card.type = 'button';
         card.className = 'gallery-card';
+        if (index === 0) card.classList.add('gallery-featured');
+        else if (item.portrait) card.classList.add('gallery-portrait');
+        else if (index % 5 === 1) card.classList.add('gallery-wide');
         card.setAttribute('aria-label', `Open ${item.title || item.full || item.file}`);
         const thumbnail = item.thumbnail || item.file;
         const visual = item.type === 'video'
