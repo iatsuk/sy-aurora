@@ -594,6 +594,9 @@
 
     drawContextLines(context, previousEntries, contextColor, 4.2);
     drawContextLines(context, currentEntries, routeColor, 5.4);
+    drawContextDirectionArrows(context, state);
+    drawContextMileageTicks(context, state);
+    drawContextStopovers(context, state);
 
     const firstFeature = state.entries[0]?.feature;
     const lastFeature = state.entries[state.entries.length - 1]?.feature;
@@ -656,15 +659,108 @@
     });
   }
 
-  function drawContextPoint(context, coordinate, color, filled) {
+  function drawContextPoint(context, coordinate, color, filled, radius = 5.5, weight = 2.5) {
     const point = contextMap.latLngToContainerPoint([coordinate[1], coordinate[0]]);
     context.save();
     context.beginPath();
-    context.arc(point.x, point.y, 5.5, 0, Math.PI * 2);
+    context.arc(point.x, point.y, radius, 0, Math.PI * 2);
     context.fillStyle = filled ? color : paperColor;
     context.fill();
     context.strokeStyle = color;
-    context.lineWidth = 2.5;
+    context.lineWidth = weight;
+    context.stroke();
+    context.restore();
+  }
+
+  function drawContextStopovers(context, state) {
+    state.entries.slice(0, -1).forEach((entry) => {
+      const endpoints = featureEndpoints(entry.feature);
+      if (!endpoints) return;
+      const color = state.selectedIndexes.has(entry.index) ? routeColor : contextColor;
+      drawContextPoint(context, endpoints.end, color, false, 4.2, 2.2);
+    });
+  }
+
+  function drawContextDirectionArrows(context, state) {
+    state.entries.forEach((entry) => {
+      const distance = Number(entry.feature?.properties?.distance_nm) || 0;
+      const fractions = distance >= 70 ? [.34, .68] : distance >= 8 ? [.55] : [];
+      const lines = geometryLines(entry.feature?.geometry).filter((line) => line.length >= 2);
+      const color = state.selectedIndexes.has(entry.index) ? routeColor : contextColor;
+
+      fractions
+        .map((fraction) => pointAlongGeometry(lines, fraction))
+        .filter(Boolean)
+        .forEach((position) => {
+          const point = contextMap.latLngToContainerPoint([position.lat, position.lon]);
+          drawContextDirectionArrow(context, point, position.bearing, color);
+        });
+    });
+  }
+
+  function drawContextDirectionArrow(context, point, bearing, color) {
+    context.save();
+    context.translate(point.x, point.y);
+    context.rotate(bearing * Math.PI / 180);
+    context.beginPath();
+    context.moveTo(0, -6.5);
+    context.lineTo(4.2, 1);
+    context.lineTo(1.8, .2);
+    context.lineTo(1.8, 5.5);
+    context.lineTo(-1.8, 5.5);
+    context.lineTo(-1.8, .2);
+    context.lineTo(-4.2, 1);
+    context.closePath();
+    context.strokeStyle = paperColor;
+    context.lineWidth = 3.2;
+    context.stroke();
+    context.fillStyle = color;
+    context.fill();
+    context.restore();
+  }
+
+  function drawContextMileageTicks(context, state) {
+    let cumulative = 0;
+    let nextMilestone = 100;
+
+    state.entries.forEach((entry) => {
+      const distance = Number(entry.feature?.properties?.distance_nm) || 0;
+      if (!(distance > 0)) return;
+
+      const lines = geometryLines(entry.feature?.geometry).filter((line) => line.length >= 2);
+      const color = state.selectedIndexes.has(entry.index) ? routeColor : contextColor;
+
+      while (nextMilestone <= cumulative + distance + 1e-6) {
+        const fraction = Math.max(0, Math.min(1, (nextMilestone - cumulative) / distance));
+        const position = pointAlongGeometry(lines, fraction);
+        if (position) {
+          const point = contextMap.latLngToContainerPoint([position.lat, position.lon]);
+          drawContextMileageTick(context, point, position.bearing, color);
+        }
+        nextMilestone += 100;
+      }
+
+      cumulative += distance;
+    });
+  }
+
+  function drawContextMileageTick(context, point, bearing, color) {
+    context.save();
+    context.translate(point.x, point.y);
+    context.rotate(bearing * Math.PI / 180);
+
+    context.beginPath();
+    context.moveTo(-6.5, 0);
+    context.lineTo(6.5, 0);
+    context.strokeStyle = paperColor;
+    context.lineWidth = 4.5;
+    context.stroke();
+
+    context.beginPath();
+    context.moveTo(-6.5, 0);
+    context.lineTo(6.5, 0);
+    context.strokeStyle = color;
+    context.lineWidth = 2;
     context.stroke();
     context.restore();
   }
