@@ -22,7 +22,9 @@
         "segment_count": 1,
         "original_points": 201,
         "simplified_points": 85,
-        "tolerance_m": 20.0
+        "tolerance_m": 20,
+        "start_timezone": "Europe/Copenhagen",
+        "end_timezone": "Europe/Copenhagen"
       },
       "geometry": {
         "type": "LineString",
@@ -386,7 +388,9 @@
         "segment_count": 1,
         "original_points": 191,
         "simplified_points": 104,
-        "tolerance_m": 20.0
+        "tolerance_m": 20,
+        "start_timezone": "Europe/Copenhagen",
+        "end_timezone": "Europe/Copenhagen"
       },
       "geometry": {
         "type": "LineString",
@@ -835,7 +839,9 @@
         "segment_count": 1,
         "original_points": 228,
         "simplified_points": 147,
-        "tolerance_m": 20.0
+        "tolerance_m": 20,
+        "start_timezone": "Europe/Copenhagen",
+        "end_timezone": "Europe/Berlin"
       },
       "geometry": {
         "type": "LineString",
@@ -1456,7 +1462,9 @@
         "segment_count": 1,
         "original_points": 213,
         "simplified_points": 140,
-        "tolerance_m": 20.0
+        "tolerance_m": 20,
+        "start_timezone": "Europe/Berlin",
+        "end_timezone": "Europe/Berlin"
       },
       "geometry": {
         "type": "LineString",

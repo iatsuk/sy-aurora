@@ -19,11 +19,20 @@ from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
 from typing import Iterable
 
+try:
+    from timezonefinder import TimezoneFinder
+except ImportError as exc:
+    raise SystemExit(
+        "Missing timezonefinder. Install track dependencies with: "
+        "python3 -m pip install -r tools/track-requirements.txt"
+    ) from exc
+
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "tracks" / "source"
 OUTPUT = ROOT / "data" / "tracks.geojson"
 EARTH_RADIUS_M = 6_371_008.8
 NM_M = 1852.0
+TIMEZONE_FINDER = TimezoneFinder(in_memory=True)
 
 
 @dataclass(frozen=True)
@@ -136,6 +145,11 @@ def format_utc(value: datetime) -> str:
     return value.isoformat(timespec="seconds").replace("+00:00", "Z")
 
 
+def point_timezone(point: Point) -> str | None:
+    """Return the IANA timezone containing a recorded point."""
+    return TIMEZONE_FINDER.timezone_at(lng=point.lon, lat=point.lat)
+
+
 def timing(segments: list[list[Point]]) -> tuple[str | None, str | None, float | None, list[dict]]:
     timed: list[tuple[int, Point, datetime, float]] = []
     total_distance = 0.0
@@ -199,6 +213,8 @@ def build_feature(segments: list[list[Point]], tolerance_m: float, source: Path)
     relative_source = source.relative_to(SOURCE).as_posix() if source.is_relative_to(SOURCE) else source.name
     path_parts = Path(relative_source).parts
     start, end, duration, day_marks = timing(segments)
+    start_timezone = point_timezone(segments[0][0])
+    end_timezone = point_timezone(segments[-1][-1])
     start_year = start[:4] if start and re.fullmatch(r"20\d{2}", start[:4]) else None
     year = path_parts[0] if path_parts and re.fullmatch(r"20\d{2}", path_parts[0]) else start_year
 
@@ -226,6 +242,8 @@ def build_feature(segments: list[list[Point]], tolerance_m: float, source: Path)
             "voyage_title": voyage_title,
             "start": start,
             "end": end,
+            "start_timezone": start_timezone,
+            "end_timezone": end_timezone,
             "distance_nm": round(distance_m / NM_M, 2),
             "duration_hours": duration,
             "day_marks": day_marks,

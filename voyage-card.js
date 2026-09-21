@@ -1,26 +1,39 @@
 (() => {
   const card = document.querySelector('[data-card]');
   const mapNode = document.querySelector('#voyage-card-map');
-  const select = document.querySelector('[data-track-select]');
+  const trackSelect = document.querySelector('[data-track-select]');
+  const rangeControls = document.querySelector('[data-range-controls]');
+  const rangeStart = document.querySelector('[data-range-start]');
+  const rangeEnd = document.querySelector('[data-range-end]');
+  const scopeButtons = [...document.querySelectorAll('[data-scope]')];
+  const layoutButtons = [...document.querySelectorAll('[data-layout]')];
   const title = document.querySelector('[data-card-title]');
   const meta = document.querySelector('[data-card-meta]');
   const voyageName = document.querySelector('[data-card-voyage]');
   const status = document.querySelector('[data-status]');
   const download = document.querySelector('[data-download]');
-  const layoutButtons = [...document.querySelectorAll('[data-layout]')];
-  if (!card || !mapNode || !select || !window.L) return;
+
+  if (!card || !mapNode || !trackSelect || !rangeStart || !rangeEnd || !window.L) return;
 
   const formats = {
-    article: { width: 1600, height: 1000 },
     portrait: { width: 1200, height: 1500 },
+    article: { width: 1600, height: 1000 },
     wide: { width: 1920, height: 1080 }
   };
-  const routeStyle = { color: '#d84a1b', weight: 5.4, opacity: 1 };
+  const routeColor = '#d84a1b';
+  const paperColor = '#f3efe6';
+
   let features = [];
+  let voyageGroups = new Map();
   let activeIndex = 0;
-  let activeLayer = null;
-  let detailLayer = null;
-  let activeLayout = 'article';
+  let activeScope = 'leg';
+  let activeLayout = 'portrait';
+  let activeSelection = [];
+
+  const routeCanvas = document.createElement('canvas');
+  routeCanvas.className = 'voyage-route-canvas';
+  routeCanvas.setAttribute('aria-hidden', 'true');
+  mapNode.append(routeCanvas);
 
   const map = L.map(mapNode, {
     zoomControl: false,
@@ -43,6 +56,8 @@
     attribution: '&copy; OpenStreetMap contributors'
   }).addTo(map);
 
+  map.on('moveend zoomend resize', () => requestAnimationFrame(drawRouteOverlay));
+
   fetch('data/tracks.geojson', { cache: 'no-store' })
     .then((response) => {
       if (!response.ok) throw new Error(`tracks.geojson: ${response.status}`);
@@ -53,10 +68,20 @@
         .filter((feature) => ['LineString', 'MultiLineString'].includes(feature.geometry?.type));
       if (!features.length) throw new Error('No GPX tracks have been published yet.');
 
-      populateSelect(features);
-      activeIndex = resolveRequestedTrack(features);
-      select.value = String(activeIndex);
-      render(activeIndex);
+      buildVoyageGroups();
+      populateTrackSelect();
+
+      const params = new URLSearchParams(window.location.search);
+      activeIndex = resolveFeatureReference(params.get('track'), features) ?? 0;
+      trackSelect.value = String(activeIndex);
+
+      populateRangeSelects(activeIndex);
+      restoreRangeFromUrl(params);
+      setScope(['leg', 'range', 'voyage'].includes(params.get('scope')) ? params.get('scope') : 'leg', false);
+
+      const requestedLayout = params.get('layout');
+      setLayout(Object.hasOwn(formats, requestedLayout) ? requestedLayout : 'portrait', false);
+      renderSelection();
 
       if (window.html2canvas) {
         download.disabled = false;
@@ -71,60 +96,76 @@
       meta.textContent = 'Add a GPX file and rebuild data/tracks.geojson';
     });
 
-  select.addEventListener('change', () => {
-    activeIndex = Number(select.value);
-    render(activeIndex);
-    const url = new URL(window.location.href);
-    const source = features[activeIndex]?.properties?.source;
-    url.searchParams.set('track', source || String(activeIndex));
-    window.history.replaceState({}, '', url);
+  trackSelect.addEventListener('change', () => {
+    activeIndex = Number(trackSelect.value);
+    populateRangeSelects(activeIndex);
+    if (activeScope === 'range') {
+      rangeStart.value = String(activeIndex);
+      rangeEnd.value = String(activeIndex);
+    }
+    renderSelection();
+  });
+
+  scopeButtons.forEach((button) => button.addEventListener('click', () => {
+    if (button.disabled) return;
+    setScope(button.dataset.scope);
+  }));
+
+  rangeStart.addEventListener('change', () => {
+    normalizeRange('start');
+    renderSelection();
+  });
+  rangeEnd.addEventListener('change', () => {
+    normalizeRange('end');
+    renderSelection();
   });
 
   layoutButtons.forEach((button) => button.addEventListener('click', () => {
-    activeLayout = button.dataset.layout;
-    card.dataset.cardLayout = activeLayout;
-    layoutButtons.forEach((candidate) =>
-      candidate.setAttribute('aria-pressed', String(candidate === button))
-    );
-    window.setTimeout(() => {
-      map.invalidateSize({ pan: false, animate: false });
-      fitActiveLayer();
-    }, 60);
+    setLayout(button.dataset.layout);
   }));
 
   download.addEventListener('click', async () => {
-    if (!window.html2canvas || !features.length) return;
+    if (!window.html2canvas || !activeSelection.length) return;
     download.disabled = true;
     status.textContent = 'Preparing map tiles and typography…';
+
     try {
       await document.fonts?.ready;
-      map.invalidateSize({ pan: false, animate: false });
-      fitActiveLayer();
-      await waitForTiles();
-
+      await settleMap();
       const format = formats[activeLayout];
       const rect = card.getBoundingClientRect();
       const scale = format.width / rect.width;
-      const canvas = await window.html2canvas(card, {
-        backgroundColor: '#f3efe6',
+
+      const captured = await window.html2canvas(card, {
+        backgroundColor: paperColor,
         logging: false,
         scale,
         useCORS: true,
         width: rect.width,
-        height: rect.height
+        height: rect.height,
+        scrollX: 0,
+        scrollY: -window.scrollY
       });
-      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+
+      const output = document.createElement('canvas');
+      output.width = format.width;
+      output.height = format.height;
+      const outputContext = output.getContext('2d');
+      outputContext.drawImage(captured, 0, 0, format.width, format.height);
+
+      const blob = await new Promise((resolve) => output.toBlob(resolve, 'image/png'));
       if (!blob) throw new Error('The browser could not create the PNG.');
 
+      const summary = aggregateSelection(activeSelection);
       const link = document.createElement('a');
       link.href = URL.createObjectURL(blob);
-      link.download = `${slug(features[activeIndex].properties?.name || 'aurora-voyage')}-${format.width}x${format.height}.png`;
+      link.download = `${slug(summary.title || 'aurora-voyage')}-${format.width}x${format.height}.png`;
       document.body.appendChild(link);
       link.click();
       const objectUrl = link.href;
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-      status.textContent = `Downloaded ${canvas.width} × ${canvas.height} PNG.`;
+      status.textContent = `Downloaded ${format.width} × ${format.height} PNG.`;
     } catch (error) {
       status.textContent = `Export failed: ${error.message}`;
     } finally {
@@ -132,65 +173,222 @@
     }
   });
 
-  function populateSelect(items) {
-    const groups = new Map();
-    items.forEach((feature, index) => {
-      const properties = feature.properties || {};
-      const label = properties.voyage_title || properties.year || 'Other voyages';
-      if (!groups.has(label)) groups.set(label, []);
-      groups.get(label).push({ feature, index });
+  function buildVoyageGroups() {
+    voyageGroups = new Map();
+    features.forEach((feature, index) => {
+      const key = voyageKey(feature, index);
+      if (!voyageGroups.has(key)) voyageGroups.set(key, []);
+      voyageGroups.get(key).push({ feature, index });
     });
+    voyageGroups.forEach((entries) => entries.sort((a, b) =>
+      String(a.feature.properties?.start || a.feature.properties?.source || a.index)
+        .localeCompare(String(b.feature.properties?.start || b.feature.properties?.source || b.index))
+    ));
+  }
 
-    groups.forEach((entries, label) => {
+  function voyageKey(feature, index) {
+    const properties = feature.properties || {};
+    return properties.voyage_id || `single:${properties.source || index}`;
+  }
+
+  function currentVoyageEntries() {
+    return voyageGroups.get(voyageKey(features[activeIndex], activeIndex)) || [{ feature: features[activeIndex], index: activeIndex }];
+  }
+
+  function populateTrackSelect() {
+    trackSelect.replaceChildren();
+    voyageGroups.forEach((entries) => {
+      const first = entries[0]?.feature;
       const group = document.createElement('optgroup');
-      group.label = label;
+      group.label = first?.properties?.voyage_title || first?.properties?.year || 'Other voyages';
       entries.forEach(({ feature, index }) => {
         const option = document.createElement('option');
         option.value = String(index);
         option.textContent = feature.properties?.name || `Voyage ${index + 1}`;
         group.appendChild(option);
       });
-      select.appendChild(group);
+      trackSelect.appendChild(group);
     });
   }
 
-  function resolveRequestedTrack(items) {
-    const requested = new URLSearchParams(window.location.search).get('track');
-    if (!requested) return 0;
-    const bySource = items.findIndex((feature) => feature.properties?.source === requested);
-    if (bySource >= 0) return bySource;
-    const numeric = Number(requested);
-    return Number.isInteger(numeric) && numeric >= 0 && numeric < items.length ? numeric : 0;
+  function populateRangeSelects(index) {
+    const entries = voyageGroups.get(voyageKey(features[index], index)) || [{ feature: features[index], index }];
+    const fill = (select) => {
+      select.replaceChildren();
+      entries.forEach(({ feature, index: featureIndex }) => {
+        const option = document.createElement('option');
+        option.value = String(featureIndex);
+        option.textContent = feature.properties?.name || `Voyage ${featureIndex + 1}`;
+        select.appendChild(option);
+      });
+    };
+    fill(rangeStart);
+    fill(rangeEnd);
+    rangeStart.value = String(index);
+    rangeEnd.value = String(index);
+
+    const rangeButton = scopeButtons.find((button) => button.dataset.scope === 'range');
+    if (rangeButton) rangeButton.disabled = entries.length < 2;
+    if (entries.length < 2 && activeScope === 'range') setScope('leg', false);
   }
 
-  function render(index) {
-    const feature = features[index];
-    if (!feature) return;
-    activeLayer?.removeFrom(map);
-    detailLayer?.removeFrom(map);
+  function restoreRangeFromUrl(params) {
+    const entries = currentVoyageEntries();
+    const from = resolveReferenceInEntries(params.get('from'), entries);
+    const to = resolveReferenceInEntries(params.get('to'), entries);
+    if (from != null) rangeStart.value = String(from);
+    if (to != null) rangeEnd.value = String(to);
+    normalizeRange('start');
+  }
 
-    const properties = feature.properties || {};
-    activeLayer = L.geoJSON(feature, { style: routeStyle }).addTo(map);
-    detailLayer = buildDetails(feature, properties).addTo(map);
+  function resolveFeatureReference(reference, items) {
+    if (!reference) return null;
+    const bySource = items.findIndex((feature) => feature.properties?.source === reference);
+    if (bySource >= 0) return bySource;
+    const numeric = Number(reference);
+    return Number.isInteger(numeric) && numeric >= 0 && numeric < items.length ? numeric : null;
+  }
 
-    title.textContent = properties.name || `Voyage ${index + 1}`;
+  function resolveReferenceInEntries(reference, entries) {
+    if (!reference) return null;
+    const bySource = entries.find((entry) => entry.feature.properties?.source === reference);
+    if (bySource) return bySource.index;
+    const numeric = Number(reference);
+    return entries.some((entry) => entry.index === numeric) ? numeric : null;
+  }
+
+  function setScope(scope, render = true) {
+    activeScope = scope;
+    scopeButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.scope === scope)));
+    rangeControls.hidden = scope !== 'range';
+    if (render) renderSelection();
+  }
+
+  function setLayout(layout, refresh = true) {
+    activeLayout = layout;
+    card.dataset.cardLayout = layout;
+    layoutButtons.forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.layout === layout)));
+    if (refresh) {
+      updateUrl();
+      window.setTimeout(refreshMapAndRoute, 60);
+    }
+  }
+
+  function normalizeRange(changed) {
+    const entries = currentVoyageEntries();
+    const positions = new Map(entries.map((entry, position) => [entry.index, position]));
+    const startPosition = positions.get(Number(rangeStart.value));
+    const endPosition = positions.get(Number(rangeEnd.value));
+    if (startPosition == null || endPosition == null) return;
+    if (startPosition <= endPosition) return;
+    if (changed === 'start') rangeEnd.value = rangeStart.value;
+    else rangeStart.value = rangeEnd.value;
+  }
+
+  function selectedEntries() {
+    const entries = currentVoyageEntries();
+    if (activeScope === 'leg') {
+      return entries.filter((entry) => entry.index === activeIndex);
+    }
+    if (activeScope === 'voyage') return entries;
+
+    const startIndex = entries.findIndex((entry) => entry.index === Number(rangeStart.value));
+    const endIndex = entries.findIndex((entry) => entry.index === Number(rangeEnd.value));
+    if (startIndex < 0 || endIndex < 0) return entries.filter((entry) => entry.index === activeIndex);
+    return entries.slice(Math.min(startIndex, endIndex), Math.max(startIndex, endIndex) + 1);
+  }
+
+  function renderSelection() {
+    const entries = selectedEntries();
+    activeSelection = entries.map((entry) => entry.feature);
+    const summary = aggregateSelection(activeSelection);
+
+    title.textContent = summary.title;
     meta.textContent = [
-      formatDateRange(properties.start, properties.end),
-      Number.isFinite(properties.distance_nm) ? `${properties.distance_nm.toFixed(1)} NM` : '',
-      formatDuration(properties.duration_hours)
+      summary.dateRange,
+      summary.startTime ? `Start ${summary.startTime}` : '',
+      Number.isFinite(summary.distanceNm) ? `${summary.distanceNm.toFixed(1)} NM` : '',
+      Number.isFinite(summary.durationHours) ? formatDuration(summary.durationHours) : '',
+      Number.isFinite(summary.averageKnots) ? `Avg ${summary.averageKnots.toFixed(1)} kn` : ''
     ].filter(Boolean).join(' · ');
-    if (voyageName) voyageName.textContent = properties.voyage_title || properties.year || 'Recorded passage';
 
+    if (voyageName) voyageName.textContent = summary.footer;
+    updateUrl();
+    refreshMapAndRoute();
+  }
+
+  function aggregateSelection(selection) {
+    const first = selection[0] || {};
+    const last = selection[selection.length - 1] || first;
+    const firstProperties = first.properties || {};
+    const lastProperties = last.properties || {};
+
+    const distanceValues = selection.map((feature) => Number(feature.properties?.distance_nm));
+    const distanceNm = distanceValues.some(Number.isFinite)
+      ? distanceValues.reduce((total, value) => total + (Number.isFinite(value) ? value : 0), 0)
+      : NaN;
+
+    const durationValues = selection.map((feature) => Number(feature.properties?.duration_hours));
+    const completeDuration = durationValues.length > 0 && durationValues.every((value) => Number.isFinite(value) && value > 0);
+    const durationHours = completeDuration ? durationValues.reduce((total, value) => total + value, 0) : NaN;
+    const averageKnots = Number.isFinite(distanceNm) && Number.isFinite(durationHours) && durationHours > 0
+      ? distanceNm / durationHours
+      : NaN;
+
+    const voyageTitle = firstProperties.voyage_title || firstProperties.year || 'Recorded passage';
+    let cardTitle = firstProperties.name || 'Voyage';
+    if (selection.length > 1 && activeScope === 'voyage') cardTitle = voyageTitle;
+    if (selection.length > 1 && activeScope === 'range') {
+      cardTitle = `${shortLegName(firstProperties.name)} – ${shortLegName(lastProperties.name)}`;
+    }
+
+    return {
+      title: cardTitle,
+      footer: selection.length > 1 ? `${voyageTitle} · ${selection.length} legs` : voyageTitle,
+      dateRange: formatDateRange(
+        firstProperties.start,
+        lastProperties.end,
+        firstProperties.start_timezone,
+        lastProperties.end_timezone
+      ),
+      startTime: formatLocalTime(firstProperties.start, firstProperties.start_timezone),
+      distanceNm,
+      durationHours,
+      averageKnots
+    };
+  }
+
+  function shortLegName(value) {
+    const text = String(value || 'Passage');
+    const match = text.match(/(?:passage|leg)\s+\d+(?:\s*[-–—].*)?$/i);
+    return match ? match[0].replace(/^./, (char) => char.toUpperCase()) : text;
+  }
+
+  function refreshMapAndRoute() {
     requestAnimationFrame(() => {
       map.invalidateSize({ pan: false, animate: false });
-      fitActiveLayer();
+      fitSelection();
+      requestAnimationFrame(() => requestAnimationFrame(drawRouteOverlay));
     });
   }
 
-  function fitActiveLayer() {
-    if (activeLayer?.getBounds().isValid()) {
-      map.fitBounds(activeLayer.getBounds(), { padding: [38, 38], maxZoom: 12, animate: false });
+  function fitSelection() {
+    const bounds = selectionBounds(activeSelection);
+    if (bounds?.isValid()) {
+      map.fitBounds(bounds, { padding: [38, 38], maxZoom: 12, animate: false });
     }
+  }
+
+  function selectionBounds(selection) {
+    const bounds = L.latLngBounds([]);
+    selection.forEach((feature) => {
+      geometryLines(feature.geometry).forEach((line) => {
+        line.forEach((coordinate) => {
+          if (Array.isArray(coordinate) && coordinate.length >= 2) bounds.extend([coordinate[1], coordinate[0]]);
+        });
+      });
+    });
+    return bounds;
   }
 
   function geometryLines(geometry) {
@@ -199,68 +397,127 @@
     return [];
   }
 
-  function buildDetails(feature, properties) {
-    const details = L.layerGroup();
-    const lines = geometryLines(feature.geometry).filter((line) => line.length >= 2);
-    if (!lines.length) return details;
+  function selectedLines(selection) {
+    return selection.flatMap((feature) => geometryLines(feature.geometry)).filter((line) => line.length >= 2);
+  }
 
-    const start = lines[0][0];
-    const lastLine = lines[lines.length - 1];
-    const finish = lastLine[lastLine.length - 1];
+  function drawRouteOverlay() {
+    const width = mapNode.clientWidth;
+    const height = mapNode.clientHeight;
+    if (!width || !height || !activeSelection.length) return;
 
-    L.circleMarker([start[1], start[0]], {
-      radius: 6,
-      color: routeStyle.color,
-      weight: 2.5,
-      fillColor: '#f3efe6',
-      fillOpacity: 1
-    }).addTo(details);
+    const density = Math.min(window.devicePixelRatio || 1, 2);
+    const targetWidth = Math.round(width * density);
+    const targetHeight = Math.round(height * density);
+    if (routeCanvas.width !== targetWidth || routeCanvas.height !== targetHeight) {
+      routeCanvas.width = targetWidth;
+      routeCanvas.height = targetHeight;
+    }
+    routeCanvas.style.width = `${width}px`;
+    routeCanvas.style.height = `${height}px`;
 
-    L.circleMarker([finish[1], finish[0]], {
-      radius: 6,
-      color: routeStyle.color,
-      weight: 2.5,
-      fillColor: routeStyle.color,
-      fillOpacity: 1
-    }).addTo(details);
+    const context = routeCanvas.getContext('2d');
+    context.setTransform(density, 0, 0, density, 0, 0);
+    context.clearRect(0, 0, width, height);
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
 
-    (Array.isArray(properties.day_marks) ? properties.day_marks : []).forEach((mark) => {
-      if (!Array.isArray(mark.coordinates) || mark.coordinates.length < 2) return;
-      L.circleMarker([mark.coordinates[1], mark.coordinates[0]], {
-        radius: 4,
-        color: routeStyle.color,
-        weight: 2,
-        fillColor: '#f3efe6',
-        fillOpacity: 1
-      })
-        .bindTooltip(formatUtcDay(mark.time), {
-          permanent: true,
-          direction: 'top',
-          offset: [0, -5],
-          className: 'voyage-day-label'
-        })
-        .addTo(details);
+    const lines = selectedLines(activeSelection);
+    context.strokeStyle = routeColor;
+    context.lineWidth = 5.4;
+    lines.forEach((line) => {
+      context.beginPath();
+      line.forEach((coordinate, index) => {
+        const point = map.latLngToContainerPoint([coordinate[1], coordinate[0]]);
+        if (index === 0) context.moveTo(point.x, point.y);
+        else context.lineTo(point.x, point.y);
+      });
+      context.stroke();
     });
 
-    const distanceNm = Number.isFinite(properties.distance_nm) ? properties.distance_nm : 0;
-    const fractions = distanceNm >= 80 ? [.25, .5, .75] : distanceNm >= 25 ? [.34, .67] : [.5];
+    const first = lines[0]?.[0];
+    const lastLine = lines[lines.length - 1];
+    const finish = lastLine?.[lastLine.length - 1];
+    if (first) drawEndpoint(context, first, false);
+    if (finish) drawEndpoint(context, finish, true);
+
+    activeSelection.forEach((feature) => {
+      (Array.isArray(feature.properties?.day_marks) ? feature.properties.day_marks : []).forEach((mark) => {
+        if (!Array.isArray(mark.coordinates) || mark.coordinates.length < 2) return;
+        const point = map.latLngToContainerPoint([mark.coordinates[1], mark.coordinates[0]]);
+        drawDayMark(context, point, formatUtcDay(mark.time));
+      });
+    });
+
+    const distance = activeSelection.reduce((total, feature) => total + (Number(feature.properties?.distance_nm) || 0), 0);
+    const fractions = distance >= 120 ? [.2, .4, .6, .8] : distance >= 80 ? [.25, .5, .75] : distance >= 25 ? [.34, .67] : [.5];
     fractions
       .map((fraction) => pointAlongGeometry(lines, fraction))
       .filter(Boolean)
-      .forEach((point) => {
-        L.marker([point.lat, point.lon], {
-          interactive: false,
-          keyboard: false,
-          icon: L.divIcon({
-            className: 'voyage-direction-marker',
-            html: `<span class="voyage-direction-arrow" style="transform: rotate(${point.bearing.toFixed(1)}deg)">↑</span>`,
-            iconSize: [22, 22],
-            iconAnchor: [11, 11]
-          })
-        }).addTo(details);
+      .forEach((position) => {
+        const point = map.latLngToContainerPoint([position.lat, position.lon]);
+        drawDirectionArrow(context, point, position.bearing);
       });
+  }
 
-    return details;
+  function drawEndpoint(context, coordinate, filled) {
+    const point = map.latLngToContainerPoint([coordinate[1], coordinate[0]]);
+    context.save();
+    context.beginPath();
+    context.arc(point.x, point.y, 6, 0, Math.PI * 2);
+    context.fillStyle = filled ? routeColor : paperColor;
+    context.fill();
+    context.strokeStyle = routeColor;
+    context.lineWidth = 2.5;
+    context.stroke();
+    context.restore();
+  }
+
+  function drawDayMark(context, point, label) {
+    context.save();
+    context.beginPath();
+    context.arc(point.x, point.y, 4, 0, Math.PI * 2);
+    context.fillStyle = paperColor;
+    context.fill();
+    context.strokeStyle = routeColor;
+    context.lineWidth = 2;
+    context.stroke();
+
+    if (label) {
+      context.font = '700 10px Manrope, system-ui, sans-serif';
+      context.textAlign = 'center';
+      context.textBaseline = 'middle';
+      const width = Math.ceil(context.measureText(label).width) + 10;
+      const height = 18;
+      const x = point.x - width / 2;
+      const y = point.y - 28;
+      context.fillStyle = 'rgba(243,239,230,.94)';
+      context.fillRect(x, y, width, height);
+      context.fillStyle = routeColor;
+      context.fillText(label, point.x, y + height / 2 + .5);
+    }
+    context.restore();
+  }
+
+  function drawDirectionArrow(context, point, bearing) {
+    context.save();
+    context.translate(point.x, point.y);
+    context.rotate(bearing * Math.PI / 180);
+    context.beginPath();
+    context.moveTo(0, -8);
+    context.lineTo(5, 1);
+    context.lineTo(2.2, .2);
+    context.lineTo(2.2, 7);
+    context.lineTo(-2.2, 7);
+    context.lineTo(-2.2, .2);
+    context.lineTo(-5, 1);
+    context.closePath();
+    context.strokeStyle = paperColor;
+    context.lineWidth = 4;
+    context.stroke();
+    context.fillStyle = routeColor;
+    context.fill();
+    context.restore();
   }
 
   function pointAlongGeometry(lines, fraction) {
@@ -313,27 +570,43 @@
     return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360;
   }
 
-  function formatDateRange(start, end) {
-    const format = (value) => {
+  function safeTimeZone(value) {
+    if (!value) return 'UTC';
+    try {
+      new Intl.DateTimeFormat('en-GB', { timeZone: value }).format(new Date());
+      return value;
+    } catch {
+      return 'UTC';
+    }
+  }
+
+  function formatDateRange(start, end, startTimeZone, endTimeZone) {
+    const format = (value, timeZone) => {
       const date = new Date(value);
       return Number.isNaN(date.valueOf()) ? '' : new Intl.DateTimeFormat('en-GB', {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
-        timeZone: 'UTC'
+        timeZone: safeTimeZone(timeZone)
       }).format(date);
     };
-    const first = format(start);
-    const last = format(end);
+    const first = format(start, startTimeZone);
+    const last = format(end, endTimeZone || startTimeZone);
     return first && last && first !== last ? `${first} – ${last}` : first;
   }
 
-  function formatDuration(hours) {
-    if (!Number.isFinite(hours) || hours < 0) return '';
-    const totalMinutes = Math.round(hours * 60);
-    const wholeHours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    return wholeHours ? `${wholeHours} H${minutes ? ` ${minutes} MIN` : ''}` : `${minutes} MIN`;
+  function formatLocalTime(value, timeZone) {
+    const date = new Date(value);
+    if (Number.isNaN(date.valueOf())) return '';
+    const zone = safeTimeZone(timeZone);
+    const formatter = new Intl.DateTimeFormat('en-GB', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+      timeZone: zone,
+      timeZoneName: 'short'
+    });
+    return formatter.format(date);
   }
 
   function formatUtcDay(value) {
@@ -343,6 +616,63 @@
       month: 'short',
       timeZone: 'UTC'
     }).format(date);
+  }
+
+  function formatDuration(hours) {
+    if (!Number.isFinite(hours) || hours < 0) return '';
+    const totalMinutes = Math.round(hours * 60);
+    const wholeHours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return wholeHours ? `${wholeHours} h${minutes ? ` ${minutes} min` : ''}` : `${minutes} min`;
+  }
+
+  function updateUrl() {
+    if (!features.length) return;
+    const url = new URL(window.location.href);
+    const source = features[activeIndex]?.properties?.source;
+    if (source) url.searchParams.set('track', source);
+    else url.searchParams.set('track', String(activeIndex));
+
+    if (activeScope === 'leg') url.searchParams.delete('scope');
+    else url.searchParams.set('scope', activeScope);
+
+    if (activeScope === 'range') {
+      const startFeature = features[Number(rangeStart.value)];
+      const endFeature = features[Number(rangeEnd.value)];
+      url.searchParams.set('from', startFeature?.properties?.source || rangeStart.value);
+      url.searchParams.set('to', endFeature?.properties?.source || rangeEnd.value);
+    } else {
+      url.searchParams.delete('from');
+      url.searchParams.delete('to');
+    }
+
+    if (activeLayout === 'portrait') url.searchParams.delete('layout');
+    else url.searchParams.set('layout', activeLayout);
+
+    window.history.replaceState({}, '', url);
+  }
+
+  async function settleMap() {
+    map.invalidateSize({ pan: false, animate: false });
+    fitSelection();
+    await nextFrames(3);
+    await waitForTiles();
+    drawRouteOverlay();
+    await nextFrames(2);
+  }
+
+  function nextFrames(count) {
+    return new Promise((resolve) => {
+      const step = () => {
+        if (count <= 0) {
+          resolve();
+          return;
+        }
+        count -= 1;
+        requestAnimationFrame(step);
+      };
+      step();
+    });
   }
 
   function waitForTiles() {

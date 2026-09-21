@@ -93,38 +93,67 @@ tracks/source/
       Læsø - Malmön.gpx
 ```
 
+Install the offline timezone lookup dependency once:
+
+```bash
+python3 -m pip install -r tools/track-requirements.txt
+```
+
 Generate the lighter web representation with:
 
 ```bash
 python3 tools/build_tracks.py --tolerance 20
 ```
 
-The script calculates distance from the original geometry, preserves separate GPX segments rather than drawing false lines across recording gaps, keeps available start/end times, duration and daily noon marks, and simplifies only the published geometry with Ramer-Douglas-Peucker. Folder names become voyage groups in the map, while years become filters. A tolerance around `15–30 m` is a useful starting point for dense Navionics tracks. The source GPX is never modified.
+The script calculates distance from the original geometry, preserves separate GPX segments rather than drawing false lines across recording gaps, keeps available start/end times, duration and daily noon marks, stores the IANA timezone at both the start and finish coordinates (`start_timezone` / `end_timezone`), and simplifies only the published geometry with Ramer-Douglas-Peucker. Folder names become voyage groups in the map, while years become filters. A tolerance around `15–30 m` is a useful starting point for dense Navionics tracks. The source GPX is never modified.
 
 If no private GPX source files are present, the builder leaves the existing published GeoJSON unchanged rather than replacing it with an empty archive.
 
 ### Export a voyage image
 
-Every individual leg in the voyage atlas has an **Export image ↗** link. It opens
-`voyage-card.html`, which reads the same committed `data/tracks.geojson` as
-the main map and renders a branded Aurora map card.
+A small share/export icon at the end of each leg's metadata line opens
+`voyage-card.html`. The exporter reads the same committed
+`data/tracks.geojson` as the main atlas; rendered PNG files are never stored in
+the repository.
 
-The export page offers three output formats:
+The exporter can render three scopes:
 
-- **Article:** 1600 × 1000 px
-- **Portrait:** 1200 × 1500 px
-- **Widescreen:** 1920 × 1080 px
+- **Leg** — the selected GPX leg only.
+- **Range** — a contiguous range of neighbouring legs within the same voyage.
+- **Whole voyage** — every leg with the same `voyage_id`.
 
-Choose a passage, choose the format and press **Download PNG**. The card includes
-the track, start/finish points, available 12:00 UTC marks, a few direction
-arrows, date range, distance and elapsed time. It does not infer weather, engine
-use, sail use or other facts that are not present in the GPX-derived GeoJSON.
+The format buttons are ordered portrait-first:
 
-The PNG is generated entirely in the browser with Leaflet and html2canvas; no
-rendered voyage images need to be committed to the repository. Run the site
-through an HTTP server (for example `python3 -m http.server 8000`) rather than
-opening the HTML file directly, because both the atlas and exporter fetch
-`data/tracks.geojson`.
+- **1200 × 1500** portrait
+- **1600 × 1000** article landscape
+- **1920 × 1080** widescreen
+
+The card includes the selected route geometry, start and finish, available
+12:00 UTC marks, direction arrows, the date range, **local start time at the departure
+position**, recorded distance, recorded duration and average speed. For a range or whole voyage,
+distance and recorded durations are summed across the selected legs; average
+speed is calculated from those recorded durations, so time spent between GPX
+legs is not counted as underway time.
+
+Local time is formatted from the IANA `start_timezone` stored in GeoJSON, so
+historical daylight-saving rules are applied by the browser instead of using the
+viewer's current timezone or a fixed UTC offset. Existing Aurora delivery legs
+are tagged with `Europe/Copenhagen` or `Europe/Berlin` as appropriate.
+
+The route overlay is drawn into a dedicated canvas above the Leaflet tiles and
+the same card DOM is used for both preview and PNG capture. This avoids the
+SVG-transform offset that can occur when html2canvas captures Leaflet vector
+paths. The export page intentionally does not apply a CSS colour filter to map
+tiles, so the browser preview and downloaded image use the same map styling.
+
+Run the site through an HTTP server, for example:
+
+```bash
+python3 -m http.server 8000
+```
+
+Then open `http://localhost:8000/voyage-card.html` or use the share/export icon
+in the voyage atlas.
 
 ## Live position
 

@@ -18,19 +18,43 @@
 <body>
   <header class="export-toolbar" aria-label="Voyage image controls">
     <a class="back-link" href="index.html#voyages">← Voyage archive</a>
+
     <label>Passage
       <select data-track-select aria-label="Passage"></select>
     </label>
-    <div class="layout-options" role="group" aria-label="Image format">
-      <button type="button" data-layout="article" aria-pressed="true">1600 × 1000</button>
-      <button type="button" data-layout="portrait" aria-pressed="false">1200 × 1500</button>
-      <button type="button" data-layout="wide" aria-pressed="false">1920 × 1080</button>
+
+    <div class="control-cluster">
+      <span class="control-label">Scope</span>
+      <div class="scope-options" role="group" aria-label="Export scope">
+        <button type="button" data-scope="leg" aria-pressed="true">Leg</button>
+        <button type="button" data-scope="range" aria-pressed="false">Range</button>
+        <button type="button" data-scope="voyage" aria-pressed="false">Whole voyage</button>
+      </div>
     </div>
+
+    <div class="range-controls" data-range-controls hidden>
+      <label>From
+        <select data-range-start aria-label="First leg in export range"></select>
+      </label>
+      <label>To
+        <select data-range-end aria-label="Last leg in export range"></select>
+      </label>
+    </div>
+
+    <div class="control-cluster">
+      <span class="control-label">Image format</span>
+      <div class="layout-options" role="group" aria-label="Image format">
+        <button type="button" data-layout="portrait" aria-pressed="true">1200 × 1500</button>
+        <button type="button" data-layout="article" aria-pressed="false">1600 × 1000</button>
+        <button type="button" data-layout="wide" aria-pressed="false">1920 × 1080</button>
+      </div>
+    </div>
+
     <button class="download-button" type="button" data-download disabled>Download PNG</button>
   </header>
 
   <main>
-    <section class="voyage-card" data-card data-card-layout="article" aria-label="Aurora voyage image preview">
+    <section class="voyage-card" data-card data-card-layout="portrait" aria-label="Aurora voyage image preview">
       <header class="card-heading">
         <p>S/Y AURORA · GREAT DANE 28 · HULL 165</p>
         <h1 data-card-title>Voyage archive</h1>
