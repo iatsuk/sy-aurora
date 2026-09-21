@@ -189,13 +189,17 @@
       });
       (feature.properties?.day_marks || []).forEach((mark) => {
         if (!Array.isArray(mark.coordinates)) return;
+        const label = mark.local_date
+          ? new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', timeZone: 'UTC' })
+              .format(new Date(`${mark.local_date}T12:00:00Z`))
+          : formatDate(mark.time);
         L.circleMarker([mark.coordinates[1], mark.coordinates[0]], {
           radius: 4,
           color: activeStyle.color,
           weight: 2,
           fillColor: '#f5f0e6',
           fillOpacity: 1
-        }).bindTooltip(formatDate(mark.time), { direction: 'top' }).addTo(details);
+        }).bindTooltip(label, { direction: 'top' }).addTo(details);
       });
       return details;
     };

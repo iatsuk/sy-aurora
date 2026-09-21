@@ -1,18 +1,17 @@
-:root {
-  --ink: #10232c;
-  --navy: #071b24;
-  --teal: #006a73;
-  --sand: #d6b77a;
-  --paper: #f3efe6;
-  --route: #d84a1b;
-  --line: rgba(7,27,36,.16);
-  --serif: "Marcellus", Georgia, serif;
-  --sans: "Manrope", system-ui, sans-serif;
-}
+:root { --route: #d84a1b; }
+
 
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
-body { margin: 0; min-width: 320px; background: #d7d1c6; color: var(--ink); font-family: var(--sans); }
+body {
+  margin: 0;
+  min-width: 320px;
+  background:
+    radial-gradient(circle at 82% 8%, rgba(214,183,122,.2), transparent 24rem),
+    linear-gradient(135deg, #d9d0bf 0%, var(--paper-2) 55%, var(--paper) 100%);
+  color: var(--ink);
+  font-family: var(--sans);
+}
 button, select { font: inherit; }
 
 .export-toolbar {
@@ -76,9 +75,10 @@ main { padding: clamp(1rem, 3vw, 2.5rem); }
   grid-template-rows: auto minmax(0, 1fr) auto;
   margin: 0 auto;
   overflow: hidden;
-  border: 1px solid var(--line);
+  border: 1px solid rgba(7,27,36,.12);
   border-radius: 1.4rem;
   background: var(--paper);
+  box-shadow: var(--shadow);
 }
 .voyage-card[data-card-layout="portrait"] { width: min(760px, 100%); aspect-ratio: 4 / 5; }
 .voyage-card[data-card-layout="article"] { width: min(1120px, 100%); aspect-ratio: 8 / 5; }
@@ -89,25 +89,29 @@ main { padding: clamp(1rem, 3vw, 2.5rem); }
   grid-template-columns: minmax(0, 1fr) auto;
   align-items: end;
   gap: .5rem 2rem;
-  padding: clamp(1rem, 2.5vw, 2rem) clamp(1.1rem, 3vw, 2.6rem);
+  padding: clamp(1.1rem, 2.7vw, 2.15rem) clamp(1.1rem, 3vw, 2.6rem);
+  color: var(--white);
+  background:
+    radial-gradient(circle at 88% 18%, rgba(214,183,122,.16), transparent 28%),
+    linear-gradient(135deg, #061820 0%, #0a2934 68%, #123a43 100%);
 }
 .card-heading p {
   grid-column: 1 / -1;
   margin: 0;
-  color: var(--teal);
+  color: var(--sand-soft);
   font-size: .64rem;
   font-weight: 700;
   letter-spacing: .16em;
 }
 .card-heading h1 {
   margin: 0;
-  color: var(--navy);
+  color: var(--white);
   font: clamp(1.8rem, 4vw, 3.8rem)/1 var(--serif);
   letter-spacing: -.03em;
 }
 .card-heading div {
   max-width: 30rem;
-  color: #64777c;
+  color: rgba(255,255,255,.66);
   font-size: .75rem;
   line-height: 1.5;
   text-align: right;
@@ -117,10 +121,13 @@ main { padding: clamp(1rem, 3vw, 2.5rem); }
   position: relative;
   min-height: 0;
   overflow: hidden;
-  border-top: 1px solid var(--line);
+  border-top: 1px solid rgba(255,255,255,.08);
   border-bottom: 1px solid var(--line);
   background: #d7ddd9;
+  box-shadow: inset 0 0 0 1px rgba(7,27,36,.08);
 }
+.card-map .leaflet-tile-pane { opacity: .82; }
+.card-map .leaflet-container { background: #d7ddd9; }
 .card-map .leaflet-control-attribution {
   background: rgba(243,239,230,.88);
   color: #617379;
@@ -140,13 +147,15 @@ main { padding: clamp(1rem, 3vw, 2.5rem); }
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  padding: .7rem clamp(1.1rem, 3vw, 2.6rem);
-  color: #687a80;
+  padding: .72rem clamp(1.1rem, 3vw, 2.6rem);
+  color: rgba(255,255,255,.58);
+  background: #041319;
   font-size: .58rem;
   font-weight: 700;
   letter-spacing: .11em;
   text-transform: uppercase;
 }
+.card-footer span:first-child { color: var(--sand-soft); }
 .export-status {
   min-height: 1.5rem;
   margin: .8rem auto 0;

@@ -16,15 +16,15 @@
         "voyage_title": "Delivery Denmark Germany",
         "start": "2026-09-01T13:12:58Z",
         "end": "2026-09-01T21:30:43Z",
+        "start_timezone": "Europe/Copenhagen",
+        "end_timezone": "Europe/Copenhagen",
         "distance_nm": 45.31,
         "duration_hours": 8.3,
         "day_marks": [],
         "segment_count": 1,
         "original_points": 201,
         "simplified_points": 85,
-        "tolerance_m": 20,
-        "start_timezone": "Europe/Copenhagen",
-        "end_timezone": "Europe/Copenhagen"
+        "tolerance_m": 20
       },
       "geometry": {
         "type": "LineString",
@@ -382,15 +382,15 @@
         "voyage_title": "Delivery Denmark Germany",
         "start": "2026-09-06T12:10:57Z",
         "end": "2026-09-06T20:36:58Z",
+        "start_timezone": "Europe/Copenhagen",
+        "end_timezone": "Europe/Copenhagen",
         "distance_nm": 33.87,
         "duration_hours": 8.43,
         "day_marks": [],
         "segment_count": 1,
         "original_points": 191,
         "simplified_points": 104,
-        "tolerance_m": 20,
-        "start_timezone": "Europe/Copenhagen",
-        "end_timezone": "Europe/Copenhagen"
+        "tolerance_m": 20
       },
       "geometry": {
         "type": "LineString",
@@ -824,24 +824,15 @@
         "voyage_title": "Delivery Denmark Germany",
         "start": "2026-09-07T04:31:44Z",
         "end": "2026-09-07T14:44:54Z",
+        "start_timezone": "Europe/Copenhagen",
+        "end_timezone": "Europe/Berlin",
         "distance_nm": 39.48,
         "duration_hours": 10.22,
-        "day_marks": [
-          {
-            "time": "2026-09-07T12:00:00Z",
-            "coordinates": [
-              11.297426,
-              54.393868
-            ],
-            "distance_nm": 27.68
-          }
-        ],
+        "day_marks": [],
         "segment_count": 1,
         "original_points": 228,
         "simplified_points": 147,
-        "tolerance_m": 20,
-        "start_timezone": "Europe/Copenhagen",
-        "end_timezone": "Europe/Berlin"
+        "tolerance_m": 20
       },
       "geometry": {
         "type": "LineString",
@@ -1447,24 +1438,15 @@
         "voyage_title": "Delivery Denmark Germany",
         "start": "2026-09-11T08:24:30Z",
         "end": "2026-09-11T17:37:58Z",
+        "start_timezone": "Europe/Berlin",
+        "end_timezone": "Europe/Berlin",
         "distance_nm": 38.82,
         "duration_hours": 9.22,
-        "day_marks": [
-          {
-            "time": "2026-09-11T12:00:00Z",
-            "coordinates": [
-              10.722925,
-              54.447295
-            ],
-            "distance_nm": 14.79
-          }
-        ],
+        "day_marks": [],
         "segment_count": 1,
         "original_points": 213,
         "simplified_points": 140,
-        "tolerance_m": 20,
-        "start_timezone": "Europe/Berlin",
-        "end_timezone": "Europe/Berlin"
+        "tolerance_m": 20
       },
       "geometry": {
         "type": "LineString",

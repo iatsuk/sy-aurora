@@ -22,6 +22,8 @@
   };
   const routeColor = '#d84a1b';
   const paperColor = '#f3efe6';
+  const navyColor = '#071b24';
+  const sandColor = '#ead9b7';
 
   let features = [];
   let voyageGroups = new Map();
@@ -435,17 +437,11 @@
       context.stroke();
     });
 
-    const first = lines[0]?.[0];
-    const lastLine = lines[lines.length - 1];
-    const finish = lastLine?.[lastLine.length - 1];
-    if (first) drawEndpoint(context, first, false);
-    if (finish) drawEndpoint(context, finish, true);
-
     activeSelection.forEach((feature) => {
       (Array.isArray(feature.properties?.day_marks) ? feature.properties.day_marks : []).forEach((mark) => {
         if (!Array.isArray(mark.coordinates) || mark.coordinates.length < 2) return;
         const point = map.latLngToContainerPoint([mark.coordinates[1], mark.coordinates[0]]);
-        drawDayMark(context, point, formatUtcDay(mark.time));
+        drawDayMark(context, point, formatDayMark(mark));
       });
     });
 
@@ -458,13 +454,82 @@
         const point = map.latLngToContainerPoint([position.lat, position.lon]);
         drawDirectionArrow(context, point, position.bearing);
       });
+
+    drawLegBoundaries(context);
   }
 
-  function drawEndpoint(context, coordinate, filled) {
+  function featureEndpoints(feature) {
+    const lines = geometryLines(feature?.geometry).filter((line) => line.length >= 2);
+    if (!lines.length) return null;
+    const lastLine = lines[lines.length - 1];
+    return {
+      start: lines[0][0],
+      end: lastLine[lastLine.length - 1]
+    };
+  }
+
+  function drawLegBoundaries(context) {
+    const firstFeature = activeSelection[0];
+    const lastFeature = activeSelection[activeSelection.length - 1];
+    const firstEndpoints = featureEndpoints(firstFeature);
+    const lastEndpoints = featureEndpoints(lastFeature);
+    if (!firstEndpoints || !lastEndpoints) return;
+
+    const firstProperties = firstFeature.properties || {};
+    drawBoundaryCallout(
+      context,
+      firstEndpoints.start,
+      'START',
+      formatLocalDateTime(firstProperties.start, firstProperties.start_timezone),
+      { filled: false, below: true }
+    );
+
+    let cumulativeDistance = 0;
+    activeSelection.forEach((feature, index) => {
+      const properties = feature.properties || {};
+      cumulativeDistance += Number(properties.distance_nm) || 0;
+      const endpoints = featureEndpoints(feature);
+      if (!endpoints) return;
+
+      if (index < activeSelection.length - 1) {
+        const nextProperties = activeSelection[index + 1].properties || {};
+        const legName = compactLegName(properties.name, index);
+        const arrival = formatLocalDateTime(properties.end, properties.end_timezone);
+        const departure = formatLocalDateTime(nextProperties.start, nextProperties.start_timezone);
+        drawBoundaryCallout(
+          context,
+          endpoints.end,
+          `${legName} · ${cumulativeDistance.toFixed(1)} NM`,
+          [arrival ? `Arr ${arrival}` : '', departure ? `Dep ${departure}` : ''].filter(Boolean).join(' · '),
+          { filled: true, below: index % 2 === 0 }
+        );
+
+        const nextEndpoints = featureEndpoints(activeSelection[index + 1]);
+        if (nextEndpoints) drawEndpoint(context, nextEndpoints.start, false, 4.5);
+      }
+    });
+
+    const lastProperties = lastFeature.properties || {};
+    drawBoundaryCallout(
+      context,
+      lastEndpoints.end,
+      `FINISH · ${cumulativeDistance.toFixed(1)} NM`,
+      formatLocalDateTime(lastProperties.end, lastProperties.end_timezone),
+      { filled: true, below: false }
+    );
+  }
+
+  function compactLegName(value, fallbackIndex) {
+    const text = shortLegName(value);
+    const match = text.match(/(?:passage|leg)\s+(\d+)/i);
+    return match ? `P${match[1]}` : `LEG ${fallbackIndex + 1}`;
+  }
+
+  function drawEndpoint(context, coordinate, filled, radius = 6) {
     const point = map.latLngToContainerPoint([coordinate[1], coordinate[0]]);
     context.save();
     context.beginPath();
-    context.arc(point.x, point.y, 6, 0, Math.PI * 2);
+    context.arc(point.x, point.y, radius, 0, Math.PI * 2);
     context.fillStyle = filled ? routeColor : paperColor;
     context.fill();
     context.strokeStyle = routeColor;
@@ -473,13 +538,65 @@
     context.restore();
   }
 
+  function drawBoundaryCallout(context, coordinate, primary, secondary, options = {}) {
+    const point = map.latLngToContainerPoint([coordinate[1], coordinate[0]]);
+    drawEndpoint(context, coordinate, Boolean(options.filled), 6);
+
+    context.save();
+    const primaryFont = '700 10px Manrope, system-ui, sans-serif';
+    const secondaryFont = '500 9px Manrope, system-ui, sans-serif';
+    context.font = primaryFont;
+    const primaryWidth = context.measureText(primary || '').width;
+    context.font = secondaryFont;
+    const secondaryWidth = context.measureText(secondary || '').width;
+    const boxWidth = Math.ceil(Math.max(primaryWidth, secondaryWidth) + 18);
+    const boxHeight = secondary ? 38 : 24;
+
+    let x = point.x + 11;
+    if (x + boxWidth > mapNode.clientWidth - 6) x = point.x - boxWidth - 11;
+    x = Math.max(6, Math.min(x, mapNode.clientWidth - boxWidth - 6));
+
+    let y = options.below ? point.y + 10 : point.y - boxHeight - 10;
+    if (y < 6) y = point.y + 10;
+    if (y + boxHeight > mapNode.clientHeight - 6) y = point.y - boxHeight - 10;
+    y = Math.max(6, Math.min(y, mapNode.clientHeight - boxHeight - 6));
+
+    roundedRect(context, x, y, boxWidth, boxHeight, 6);
+    context.fillStyle = 'rgba(7,27,36,.92)';
+    context.fill();
+
+    context.textAlign = 'left';
+    context.textBaseline = 'middle';
+    context.font = primaryFont;
+    context.fillStyle = sandColor;
+    context.fillText(primary || '', x + 9, y + (secondary ? 12 : boxHeight / 2));
+
+    if (secondary) {
+      context.font = secondaryFont;
+      context.fillStyle = 'rgba(255,253,248,.76)';
+      context.fillText(secondary, x + 9, y + 27);
+    }
+    context.restore();
+  }
+
+  function roundedRect(context, x, y, width, height, radius) {
+    const r = Math.min(radius, width / 2, height / 2);
+    context.beginPath();
+    context.moveTo(x + r, y);
+    context.arcTo(x + width, y, x + width, y + height, r);
+    context.arcTo(x + width, y + height, x, y + height, r);
+    context.arcTo(x, y + height, x, y, r);
+    context.arcTo(x, y, x + width, y, r);
+    context.closePath();
+  }
+
   function drawDayMark(context, point, label) {
     context.save();
     context.beginPath();
     context.arc(point.x, point.y, 4, 0, Math.PI * 2);
-    context.fillStyle = paperColor;
+    context.fillStyle = navyColor;
     context.fill();
-    context.strokeStyle = routeColor;
+    context.strokeStyle = sandColor;
     context.lineWidth = 2;
     context.stroke();
 
@@ -487,13 +604,14 @@
       context.font = '700 10px Manrope, system-ui, sans-serif';
       context.textAlign = 'center';
       context.textBaseline = 'middle';
-      const width = Math.ceil(context.measureText(label).width) + 10;
-      const height = 18;
+      const width = Math.ceil(context.measureText(label).width) + 12;
+      const height = 19;
       const x = point.x - width / 2;
-      const y = point.y - 28;
-      context.fillStyle = 'rgba(243,239,230,.94)';
-      context.fillRect(x, y, width, height);
-      context.fillStyle = routeColor;
+      const y = point.y - 29;
+      roundedRect(context, x, y, width, height, 5);
+      context.fillStyle = 'rgba(7,27,36,.9)';
+      context.fill();
+      context.fillStyle = sandColor;
       context.fillText(label, point.x, y + height / 2 + .5);
     }
     context.restore();
@@ -609,12 +727,34 @@
     return formatter.format(date);
   }
 
-  function formatUtcDay(value) {
+  function formatLocalDateTime(value, timeZone) {
     const date = new Date(value);
+    if (Number.isNaN(date.valueOf())) return '';
+    return new Intl.DateTimeFormat('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      hour: '2-digit',
+      minute: '2-digit',
+      hourCycle: 'h23',
+      timeZone: safeTimeZone(timeZone),
+      timeZoneName: 'short'
+    }).format(date);
+  }
+
+  function formatDayMark(mark) {
+    if (mark?.local_date) {
+      const date = new Date(`${mark.local_date}T12:00:00Z`);
+      return Number.isNaN(date.valueOf()) ? mark.local_date : new Intl.DateTimeFormat('en-GB', {
+        day: '2-digit',
+        month: 'short',
+        timeZone: 'UTC'
+      }).format(date);
+    }
+    const date = new Date(mark?.time);
     return Number.isNaN(date.valueOf()) ? '' : new Intl.DateTimeFormat('en-GB', {
       day: '2-digit',
       month: 'short',
-      timeZone: 'UTC'
+      timeZone: safeTimeZone(mark?.timezone)
     }).format(date);
   }
 
