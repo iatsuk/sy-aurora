@@ -29,27 +29,54 @@ Then open `http://localhost:8000`.
 
 ## Add photographs and videos
 
-Put browser-friendly media under `media/gallery/`, preferably grouped by category:
+Camera originals live locally under `media/gallery-source/` and are ignored by
+Git. The generated public WebP assets live under `media/gallery/` and are
+committed.
+
+The gallery uses one classification rule: **the category describes what the
+photo documents**. Voyage/time context can be represented by an optional nested
+album folder instead of becoming a second category.
 
 ```text
-media/gallery/
-  01-under-sail/
-  02-exterior/
+media/gallery-source/
+  01-overview/
+  02-underway/
+    2026-skagerrak/
   03-deck-cockpit/
-  04-interior/
-  05-engine-systems/
-  06-rig-sails/
-  07-underwater-hull/
-  08-voyages/
+  04-rig-sails/
+  05-interior/
+  06-storage-service-spaces/
+  07-machinery-systems/
+  08-hull-underwater/
 ```
 
-Then run:
+Install the image dependencies once:
+
+```bash
+python3 -m pip install -r tools/gallery-requirements.txt
+```
+
+Check camera originals before generating anything:
+
+```bash
+python3 tools/build_gallery.py --check
+```
+
+Then build:
 
 ```bash
 python3 tools/build_gallery.py
 ```
 
-The script writes `data/gallery-data.js`, which drives gallery filters and the full-screen viewer.
+The builder supports common JPEG/PNG/TIFF/HEIC and RAW camera files, applies
+EXIF orientation, converts to sRGB and removes EXIF/GPS metadata from published
+images. It generates a 900 px WebP thumbnail and a 2200 px WebP fullscreen
+asset for each photo, then writes `data/gallery-data.js`. Generated gallery
+assets and the manifest should be committed; camera originals should not.
+
+Browser-ready MP4/WebM/OGV files can also be staged in the same category tree
+and are copied as-is. See `media/gallery-source/README.md` for category
+definitions and examples.
 
 ## Add GPX voyages
 
