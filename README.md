@@ -152,9 +152,14 @@ upright and offset from the orange line.
 The map also marks every passage boundary. Overall Start/Finish labels keep local
 date/time. Intermediate boundaries describe the stopover after the completed passage,
 for example `AFTER PASSAGE 2 · 79.2 NM total` / `Stopover 7h 55m`. Multi-day
-stopovers omit minutes to keep the callout short. Dark terminal/stopover callouts are
-laid out first; inline passage labels then search several positions and both sides of
-the route to avoid those occupied areas and other passage labels. This uses only recorded GPX metadata — place
+stopovers omit minutes to keep the callout short.
+
+The label layout deliberately favours visual regularity over aggressive collision
+avoidance. Dark terminal/stopover callouts are horizontally centred on their recorded
+point and normally sit above it. Inline passage labels stay at the exact midpoint of
+their passage and remain aligned with the route; if they collide with a dark callout,
+they can only flip to the other side of the route or move slightly farther away from
+it. They are never shifted forward or backward along the passage. This uses only recorded GPX metadata — place
 names are deliberately not invented or reverse-geocoded.
 
 The exporter reuses the main Aurora stylesheet and the same navy / sand / paper
