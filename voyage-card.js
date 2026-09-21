@@ -347,7 +347,7 @@
 
     return {
       title: cardTitle,
-      footer: selection.length > 1 ? `${voyageTitle} · ${selection.length} legs` : voyageTitle,
+      footer: selection.length > 1 ? `${voyageTitle} · ${selection.length} passages` : voyageTitle,
       dateRange: formatDateRange(
         firstProperties.start,
         lastProperties.end,
@@ -438,8 +438,6 @@
       context.stroke();
     });
 
-    if (activeSelection.length > 1) drawLegLabels(context);
-
     activeSelection.forEach((feature) => {
       (Array.isArray(feature.properties?.day_marks) ? feature.properties.day_marks : []).forEach((mark) => {
         if (!Array.isArray(mark.coordinates) || mark.coordinates.length < 2) return;
@@ -458,7 +456,10 @@
         drawDirectionArrow(context, point, position.bearing);
       });
 
-    drawLegBoundaries(context);
+    // Terminal / stopover callouts have priority. Passage labels are placed
+    // afterwards and search for a free position around these occupied boxes.
+    const occupiedBoxes = drawPassageBoundaries(context);
+    if (activeSelection.length > 1) drawPassageLabels(context, occupiedBoxes);
   }
 
   function featureEndpoints(feature) {
@@ -471,21 +472,24 @@
     };
   }
 
-  function drawLegBoundaries(context) {
+  function drawPassageBoundaries(context) {
+    const occupiedBoxes = [];
     const firstFeature = activeSelection[0];
     const lastFeature = activeSelection[activeSelection.length - 1];
     const firstEndpoints = featureEndpoints(firstFeature);
     const lastEndpoints = featureEndpoints(lastFeature);
-    if (!firstEndpoints || !lastEndpoints) return;
+    if (!firstEndpoints || !lastEndpoints) return occupiedBoxes;
 
     const firstProperties = firstFeature.properties || {};
-    drawBoundaryCallout(
+    const startBox = drawBoundaryCallout(
       context,
       firstEndpoints.start,
       'START',
       formatLocalDateTime(firstProperties.start, firstProperties.start_timezone),
-      { filled: false, below: true }
+      { filled: false, below: true },
+      occupiedBoxes
     );
+    if (startBox) occupiedBoxes.push(startBox);
 
     let cumulativeDistance = 0;
     activeSelection.forEach((feature, index) => {
@@ -497,16 +501,17 @@
       if (index < activeSelection.length - 1) {
         const nextFeature = activeSelection[index + 1];
         const nextProperties = nextFeature.properties || {};
-        const currentLeg = compactLegName(properties.name, index);
-        const nextLeg = compactLegName(nextProperties.name, index + 1);
+        const currentPassage = passageName(properties.name, index);
         const stopDuration = formatStopDuration(properties.end, nextProperties.start);
-        drawBoundaryCallout(
+        const stopBox = drawBoundaryCallout(
           context,
           endpoints.end,
-          `${currentLeg} → ${nextLeg} · ${cumulativeDistance.toFixed(1)} NM total`,
-          stopDuration ? `Stop ${stopDuration}` : 'Stopover',
-          { filled: true, below: index % 2 === 0 }
+          `AFTER ${currentPassage.toUpperCase()} · ${cumulativeDistance.toFixed(1)} NM total`,
+          stopDuration ? `Stopover ${stopDuration}` : 'Stopover',
+          { filled: true, below: index % 2 === 0 },
+          occupiedBoxes
         );
+        if (stopBox) occupiedBoxes.push(stopBox);
 
         const nextEndpoints = featureEndpoints(nextFeature);
         if (nextEndpoints) drawEndpoint(context, nextEndpoints.start, false, 4.5);
@@ -514,39 +519,55 @@
     });
 
     const lastProperties = lastFeature.properties || {};
-    drawBoundaryCallout(
+    const finishBox = drawBoundaryCallout(
       context,
       lastEndpoints.end,
       `FINISH · ${cumulativeDistance.toFixed(1)} NM`,
       formatLocalDateTime(lastProperties.end, lastProperties.end_timezone),
-      { filled: true, below: false }
+      { filled: true, below: false },
+      occupiedBoxes
     );
+    if (finishBox) occupiedBoxes.push(finishBox);
+
+    return occupiedBoxes;
   }
 
-  function drawLegLabels(context) {
+  function drawPassageLabels(context, occupiedBoxes) {
     activeSelection.forEach((feature, index) => {
       const properties = feature.properties || {};
       const distance = Number(properties.distance_nm);
       const duration = Number(properties.duration_hours);
       const parts = [
-        compactLegName(properties.name, index),
+        passageName(properties.name, index),
         Number.isFinite(distance) ? `${distance.toFixed(1)} NM` : '',
         Number.isFinite(duration) ? formatDurationCompact(duration) : ''
       ].filter(Boolean);
       if (parts.length < 2) return;
 
-      const placement = findLegLabelPlacement(feature, index);
+      const label = parts.join(' · ');
+      const placement = findPassageLabelPlacement(context, feature, index, label, occupiedBoxes);
       if (!placement) return;
-      drawLegLabel(context, placement, parts.join(' · '));
+      drawPassageLabel(context, placement, label);
+      occupiedBoxes.push(expandRect(placement.rect, 4));
     });
   }
 
-  function findLegLabelPlacement(feature, index) {
+  function findPassageLabelPlacement(context, feature, index, label, occupiedBoxes) {
     const lines = geometryLines(feature?.geometry).filter((line) => line.length >= 2);
     if (!lines.length) return null;
 
-    const fractions = [.5, .45, .55, .4, .6, .35, .65];
-    let best = null;
+    const font = '700 10px Manrope, system-ui, sans-serif';
+    context.save();
+    context.font = font;
+    const labelWidth = Math.ceil(context.measureText(label).width) + 16;
+    context.restore();
+    const labelHeight = 21;
+
+    const fractions = [.5, .44, .56, .38, .62, .32, .68];
+    const sides = index % 2 === 0 ? [-1, 1] : [1, -1];
+    const offsets = [14, 26, 38];
+    let bestFree = null;
+    let bestFallback = null;
 
     fractions.forEach((fraction) => {
       const before = pointAlongGeometry(lines, Math.max(.02, fraction - .045));
@@ -562,50 +583,87 @@
       const secondAngle = Math.atan2(afterPoint.y - centrePoint.y, afterPoint.x - centrePoint.x);
       const bend = Math.abs(normalizeAngle(secondAngle - firstAngle));
       const span = Math.hypot(afterPoint.x - beforePoint.x, afterPoint.y - beforePoint.y);
-      const score = span - bend * 75 - Math.abs(fraction - .5) * 28;
 
-      if (!best || score > best.score) {
-        let angle = Math.atan2(afterPoint.y - beforePoint.y, afterPoint.x - beforePoint.x);
-        if (angle > Math.PI / 2) angle -= Math.PI;
-        if (angle < -Math.PI / 2) angle += Math.PI;
-        best = {
-          x: centrePoint.x,
-          y: centrePoint.y,
-          angle,
-          side: index % 2 === 0 ? -1 : 1,
-          score
-        };
-      }
+      let angle = Math.atan2(afterPoint.y - beforePoint.y, afterPoint.x - beforePoint.x);
+      if (angle > Math.PI / 2) angle -= Math.PI;
+      if (angle < -Math.PI / 2) angle += Math.PI;
+
+      sides.forEach((side) => {
+        offsets.forEach((offsetMagnitude) => {
+          const offset = offsetMagnitude * side;
+          const labelCentreX = centrePoint.x - Math.sin(angle) * offset;
+          const labelCentreY = centrePoint.y + Math.cos(angle) * offset;
+          const cos = Math.abs(Math.cos(angle));
+          const sin = Math.abs(Math.sin(angle));
+          const boxWidth = labelWidth * cos + labelHeight * sin;
+          const boxHeight = labelWidth * sin + labelHeight * cos;
+          const rect = {
+            x: labelCentreX - boxWidth / 2,
+            y: labelCentreY - boxHeight / 2,
+            width: boxWidth,
+            height: boxHeight
+          };
+
+          const inside = rect.x >= 6 && rect.y >= 6 &&
+            rect.x + rect.width <= mapNode.clientWidth - 6 &&
+            rect.y + rect.height <= mapNode.clientHeight - 6;
+          if (!inside) return;
+
+          const overlap = occupiedBoxes.reduce((total, occupied) => total + overlapArea(rect, occupied), 0);
+          const score = span - bend * 75 - Math.abs(fraction - .5) * 30 - (offsetMagnitude - 14) * .9;
+          const candidate = {
+            x: centrePoint.x,
+            y: centrePoint.y,
+            angle,
+            offset,
+            width: labelWidth,
+            height: labelHeight,
+            rect,
+            score
+          };
+
+          if (overlap === 0) {
+            if (!bestFree || candidate.score > bestFree.score) bestFree = candidate;
+          } else {
+            const fallbackScore = candidate.score - overlap * 3;
+            if (!bestFallback || fallbackScore > bestFallback.fallbackScore) {
+              bestFallback = { ...candidate, fallbackScore };
+            }
+          }
+        });
+      });
     });
 
-    return best;
+    return bestFree || bestFallback;
   }
 
-  function drawLegLabel(context, placement, label) {
+  function drawPassageLabel(context, placement, label) {
     context.save();
     context.translate(placement.x, placement.y);
     context.rotate(placement.angle);
 
-    const offset = 14 * placement.side;
-    const font = '700 10px Manrope, system-ui, sans-serif';
-    context.font = font;
-    const width = Math.ceil(context.measureText(label).width) + 16;
-    const height = 21;
-    const x = -width / 2;
-    const y = offset - height / 2;
+    const x = -placement.width / 2;
+    const y = placement.offset - placement.height / 2;
 
-    roundedRect(context, x, y, width, height, 6);
+    roundedRect(context, x, y, placement.width, placement.height, 6);
     context.fillStyle = 'rgba(243,239,230,.94)';
     context.fill();
     context.strokeStyle = 'rgba(7,27,36,.14)';
     context.lineWidth = 1;
     context.stroke();
 
+    context.font = '700 10px Manrope, system-ui, sans-serif';
     context.textAlign = 'center';
     context.textBaseline = 'middle';
     context.fillStyle = navyColor;
-    context.fillText(label, 0, offset + .5);
+    context.fillText(label, 0, placement.offset + .5);
     context.restore();
+  }
+
+  function passageName(value, fallbackIndex) {
+    const text = shortLegName(value);
+    const match = text.match(/(?:passage|leg)\s+(\d+)/i);
+    return match ? `Passage ${match[1]}` : `Passage ${fallbackIndex + 1}`;
   }
 
   function normalizeAngle(value) {
@@ -613,6 +671,37 @@
     while (angle > Math.PI) angle -= Math.PI * 2;
     while (angle < -Math.PI) angle += Math.PI * 2;
     return angle;
+  }
+
+  function expandRect(rect, amount) {
+    return {
+      x: rect.x - amount,
+      y: rect.y - amount,
+      width: rect.width + amount * 2,
+      height: rect.height + amount * 2
+    };
+  }
+
+  function rectsIntersect(a, b) {
+    return a.x < b.x + b.width &&
+      a.x + a.width > b.x &&
+      a.y < b.y + b.height &&
+      a.y + a.height > b.y;
+  }
+
+  function overlapArea(a, b) {
+    if (!rectsIntersect(a, b)) return 0;
+    const width = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+    const height = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+    return Math.max(0, width) * Math.max(0, height);
+  }
+
+  function unionRects(a, b) {
+    const x = Math.min(a.x, b.x);
+    const y = Math.min(a.y, b.y);
+    const right = Math.max(a.x + a.width, b.x + b.width);
+    const bottom = Math.max(a.y + a.height, b.y + b.height);
+    return { x, y, width: right - x, height: bottom - y };
   }
 
   function formatDurationCompact(hours) {
@@ -639,12 +728,6 @@
     return `${minutes}m`;
   }
 
-  function compactLegName(value, fallbackIndex) {
-    const text = shortLegName(value);
-    const match = text.match(/(?:passage|leg)\s+(\d+)/i);
-    return match ? `P${match[1]}` : `LEG ${fallbackIndex + 1}`;
-  }
-
   function drawEndpoint(context, coordinate, filled, radius = 6) {
     const point = map.latLngToContainerPoint([coordinate[1], coordinate[0]]);
     context.save();
@@ -658,7 +741,7 @@
     context.restore();
   }
 
-  function drawBoundaryCallout(context, coordinate, primary, secondary, options = {}) {
+  function drawBoundaryCallout(context, coordinate, primary, secondary, options = {}, occupiedBoxes = []) {
     const point = map.latLngToContainerPoint([coordinate[1], coordinate[0]]);
     drawEndpoint(context, coordinate, Boolean(options.filled), 6);
 
@@ -671,15 +754,36 @@
     const secondaryWidth = context.measureText(secondary || '').width;
     const boxWidth = Math.ceil(Math.max(primaryWidth, secondaryWidth) + 18);
     const boxHeight = secondary ? 38 : 24;
+    const gap = 11;
 
-    let x = point.x + 11;
-    if (x + boxWidth > mapNode.clientWidth - 6) x = point.x - boxWidth - 11;
-    x = Math.max(6, Math.min(x, mapNode.clientWidth - boxWidth - 6));
+    const positions = options.below
+      ? [
+          { side: 1, vertical: 1 },
+          { side: -1, vertical: 1 },
+          { side: 1, vertical: -1 },
+          { side: -1, vertical: -1 }
+        ]
+      : [
+          { side: 1, vertical: -1 },
+          { side: -1, vertical: -1 },
+          { side: 1, vertical: 1 },
+          { side: -1, vertical: 1 }
+        ];
 
-    let y = options.below ? point.y + 10 : point.y - boxHeight - 10;
-    if (y < 6) y = point.y + 10;
-    if (y + boxHeight > mapNode.clientHeight - 6) y = point.y - boxHeight - 10;
-    y = Math.max(6, Math.min(y, mapNode.clientHeight - boxHeight - 6));
+    const candidates = positions.map(({ side, vertical }, priority) => {
+      let x = side > 0 ? point.x + gap : point.x - boxWidth - gap;
+      let y = vertical > 0 ? point.y + gap : point.y - boxHeight - gap;
+      x = Math.max(6, Math.min(x, mapNode.clientWidth - boxWidth - 6));
+      y = Math.max(6, Math.min(y, mapNode.clientHeight - boxHeight - 6));
+      const rect = { x, y, width: boxWidth, height: boxHeight };
+      const overlap = occupiedBoxes.reduce((total, occupied) => total + overlapArea(rect, occupied), 0);
+      return { rect, overlap, priority };
+    });
+
+    const chosen = candidates
+      .slice()
+      .sort((a, b) => (a.overlap - b.overlap) || (a.priority - b.priority))[0];
+    const { x, y } = chosen.rect;
 
     roundedRect(context, x, y, boxWidth, boxHeight, 6);
     context.fillStyle = 'rgba(7,27,36,.92)';
@@ -697,6 +801,9 @@
       context.fillText(secondary, x + 9, y + 27);
     }
     context.restore();
+
+    const markerRect = { x: point.x - 9, y: point.y - 9, width: 18, height: 18 };
+    return expandRect(unionRects(chosen.rect, markerRect), 5);
   }
 
   function roundedRect(context, x, y, width, height, radius) {
