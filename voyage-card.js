@@ -16,7 +16,8 @@
   if (!card || !mapNode || !trackSelect || !rangeStart || !rangeEnd || !window.L) return;
 
   const formats = {
-    portrait: { width: 1200, height: 1500 },
+    story: { width: 1080, height: 1920 },
+    portrait: { width: 1080, height: 1350 },
     article: { width: 1600, height: 1000 },
     wide: { width: 1920, height: 1080 }
   };
@@ -29,7 +30,7 @@
   let voyageGroups = new Map();
   let activeIndex = 0;
   let activeScope = 'leg';
-  let activeLayout = 'portrait';
+  let activeLayout = 'story';
   let activeSelection = [];
 
   const routeCanvas = document.createElement('canvas');
@@ -82,7 +83,7 @@
       setScope(['leg', 'range', 'voyage'].includes(params.get('scope')) ? params.get('scope') : 'leg', false);
 
       const requestedLayout = params.get('layout');
-      setLayout(Object.hasOwn(formats, requestedLayout) ? requestedLayout : 'portrait', false);
+      setLayout(Object.hasOwn(formats, requestedLayout) ? requestedLayout : 'story', false);
       renderSelection();
 
       if (window.html2canvas) {
@@ -437,6 +438,8 @@
       context.stroke();
     });
 
+    if (activeSelection.length > 1) drawLegLabels(context);
+
     activeSelection.forEach((feature) => {
       (Array.isArray(feature.properties?.day_marks) ? feature.properties.day_marks : []).forEach((mark) => {
         if (!Array.isArray(mark.coordinates) || mark.coordinates.length < 2) return;
@@ -492,19 +495,20 @@
       if (!endpoints) return;
 
       if (index < activeSelection.length - 1) {
-        const nextProperties = activeSelection[index + 1].properties || {};
-        const legName = compactLegName(properties.name, index);
-        const arrival = formatLocalDateTime(properties.end, properties.end_timezone);
-        const departure = formatLocalDateTime(nextProperties.start, nextProperties.start_timezone);
+        const nextFeature = activeSelection[index + 1];
+        const nextProperties = nextFeature.properties || {};
+        const currentLeg = compactLegName(properties.name, index);
+        const nextLeg = compactLegName(nextProperties.name, index + 1);
+        const stopDuration = formatStopDuration(properties.end, nextProperties.start);
         drawBoundaryCallout(
           context,
           endpoints.end,
-          `${legName} · ${cumulativeDistance.toFixed(1)} NM`,
-          [arrival ? `Arr ${arrival}` : '', departure ? `Dep ${departure}` : ''].filter(Boolean).join(' · '),
+          `${currentLeg} → ${nextLeg} · ${cumulativeDistance.toFixed(1)} NM total`,
+          stopDuration ? `Stop ${stopDuration}` : 'Stopover',
           { filled: true, below: index % 2 === 0 }
         );
 
-        const nextEndpoints = featureEndpoints(activeSelection[index + 1]);
+        const nextEndpoints = featureEndpoints(nextFeature);
         if (nextEndpoints) drawEndpoint(context, nextEndpoints.start, false, 4.5);
       }
     });
@@ -517,6 +521,122 @@
       formatLocalDateTime(lastProperties.end, lastProperties.end_timezone),
       { filled: true, below: false }
     );
+  }
+
+  function drawLegLabels(context) {
+    activeSelection.forEach((feature, index) => {
+      const properties = feature.properties || {};
+      const distance = Number(properties.distance_nm);
+      const duration = Number(properties.duration_hours);
+      const parts = [
+        compactLegName(properties.name, index),
+        Number.isFinite(distance) ? `${distance.toFixed(1)} NM` : '',
+        Number.isFinite(duration) ? formatDurationCompact(duration) : ''
+      ].filter(Boolean);
+      if (parts.length < 2) return;
+
+      const placement = findLegLabelPlacement(feature, index);
+      if (!placement) return;
+      drawLegLabel(context, placement, parts.join(' · '));
+    });
+  }
+
+  function findLegLabelPlacement(feature, index) {
+    const lines = geometryLines(feature?.geometry).filter((line) => line.length >= 2);
+    if (!lines.length) return null;
+
+    const fractions = [.5, .45, .55, .4, .6, .35, .65];
+    let best = null;
+
+    fractions.forEach((fraction) => {
+      const before = pointAlongGeometry(lines, Math.max(.02, fraction - .045));
+      const centre = pointAlongGeometry(lines, fraction);
+      const after = pointAlongGeometry(lines, Math.min(.98, fraction + .045));
+      if (!before || !centre || !after) return;
+
+      const beforePoint = map.latLngToContainerPoint([before.lat, before.lon]);
+      const centrePoint = map.latLngToContainerPoint([centre.lat, centre.lon]);
+      const afterPoint = map.latLngToContainerPoint([after.lat, after.lon]);
+
+      const firstAngle = Math.atan2(centrePoint.y - beforePoint.y, centrePoint.x - beforePoint.x);
+      const secondAngle = Math.atan2(afterPoint.y - centrePoint.y, afterPoint.x - centrePoint.x);
+      const bend = Math.abs(normalizeAngle(secondAngle - firstAngle));
+      const span = Math.hypot(afterPoint.x - beforePoint.x, afterPoint.y - beforePoint.y);
+      const score = span - bend * 75 - Math.abs(fraction - .5) * 28;
+
+      if (!best || score > best.score) {
+        let angle = Math.atan2(afterPoint.y - beforePoint.y, afterPoint.x - beforePoint.x);
+        if (angle > Math.PI / 2) angle -= Math.PI;
+        if (angle < -Math.PI / 2) angle += Math.PI;
+        best = {
+          x: centrePoint.x,
+          y: centrePoint.y,
+          angle,
+          side: index % 2 === 0 ? -1 : 1,
+          score
+        };
+      }
+    });
+
+    return best;
+  }
+
+  function drawLegLabel(context, placement, label) {
+    context.save();
+    context.translate(placement.x, placement.y);
+    context.rotate(placement.angle);
+
+    const offset = 14 * placement.side;
+    const font = '700 10px Manrope, system-ui, sans-serif';
+    context.font = font;
+    const width = Math.ceil(context.measureText(label).width) + 16;
+    const height = 21;
+    const x = -width / 2;
+    const y = offset - height / 2;
+
+    roundedRect(context, x, y, width, height, 6);
+    context.fillStyle = 'rgba(243,239,230,.94)';
+    context.fill();
+    context.strokeStyle = 'rgba(7,27,36,.14)';
+    context.lineWidth = 1;
+    context.stroke();
+
+    context.textAlign = 'center';
+    context.textBaseline = 'middle';
+    context.fillStyle = navyColor;
+    context.fillText(label, 0, offset + .5);
+    context.restore();
+  }
+
+  function normalizeAngle(value) {
+    let angle = value;
+    while (angle > Math.PI) angle -= Math.PI * 2;
+    while (angle < -Math.PI) angle += Math.PI * 2;
+    return angle;
+  }
+
+  function formatDurationCompact(hours) {
+    if (!Number.isFinite(hours) || hours < 0) return '';
+    const totalMinutes = Math.round(hours * 60);
+    const wholeHours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return wholeHours ? `${wholeHours}h${minutes ? ` ${minutes}m` : ''}` : `${minutes}m`;
+  }
+
+  function formatStopDuration(end, nextStart) {
+    const endDate = new Date(end);
+    const startDate = new Date(nextStart);
+    if (Number.isNaN(endDate.valueOf()) || Number.isNaN(startDate.valueOf()) || startDate <= endDate) return '';
+
+    const totalMinutes = Math.round((startDate - endDate) / 60000);
+    const days = Math.floor(totalMinutes / 1440);
+    const remainder = totalMinutes - days * 1440;
+    const hours = Math.floor(remainder / 60);
+    const minutes = remainder % 60;
+
+    if (days) return `${days}d${hours ? ` ${hours}h` : ''}`;
+    if (hours) return `${hours}h${minutes ? ` ${minutes}m` : ''}`;
+    return `${minutes}m`;
   }
 
   function compactLegName(value, fallbackIndex) {
@@ -786,7 +906,7 @@
       url.searchParams.delete('to');
     }
 
-    if (activeLayout === 'portrait') url.searchParams.delete('layout');
+    if (activeLayout === 'story') url.searchParams.delete('layout');
     else url.searchParams.set('layout', activeLayout);
 
     window.history.replaceState({}, '', url);

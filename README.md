@@ -122,9 +122,10 @@ The exporter can render three scopes:
 - **Range** — a contiguous range of neighbouring legs within the same voyage.
 - **Whole voyage** — every leg with the same `voyage_id`.
 
-The format buttons are ordered portrait-first:
+The format buttons are ordered story-first:
 
-- **1200 × 1500** portrait
+- **1080 × 1920** Instagram Story / Reel cover
+- **1080 × 1350** portrait feed post
 - **1600 × 1000** article landscape
 - **1920 × 1080** widescreen
 
@@ -132,9 +133,10 @@ The card includes the selected route geometry, direction arrows, the date range,
 **local start time at the departure position**, recorded distance, recorded
 duration and average speed. A continuous multi-day leg gets a sparse marker at
 local midnight; ordinary same-day legs get no arbitrary day marker. For a range or whole voyage,
-distance and recorded durations are summed across the selected legs; average
-speed is calculated from those recorded durations, so time spent between GPX
-legs is not counted as underway time.
+distance and recorded durations are summed across the selected legs; the header
+average speed always describes the currently selected scope (one leg, a range or
+the whole voyage) and is calculated from recorded underway durations, so time
+spent between GPX legs is not counted as underway time.
 
 Local time is formatted from the IANA `start_timezone` stored in GeoJSON, so
 historical daylight-saving rules are applied by the browser instead of using the
@@ -142,14 +144,22 @@ viewer's current timezone or a fixed UTC offset. Midnight marks store their
 `local_date` and timezone alongside the interpolated UTC timestamp. Existing Aurora delivery legs
 are tagged with `Europe/Copenhagen` or `Europe/Berlin` as appropriate.
 
-For a range or whole-voyage export, the map also marks every leg boundary.
-Overall Start/Finish labels show local date/time; intermediate stops show the
-completed leg, cumulative distance, arrival time and next departure time. This
-uses only recorded GPX metadata — place names are deliberately not invented or
-reverse-geocoded.
+For a range or whole-voyage export, each leg gets a compact label placed along
+a relatively straight part near the middle of its route, for example
+`P2 · 33.9 NM · 8h 26m`. Labels are rotated with the route but always kept
+upright and offset from the orange line.
+
+The map also marks every leg boundary. Overall Start/Finish labels keep local
+date/time. Intermediate boundaries are intentionally more compact: they show
+the transition, cumulative distance and the pause before the next departure,
+for example `P2 → P3 · 79.2 NM total` / `Stop 7h 55m`. Multi-day stops omit
+minutes to keep the callout short. This uses only recorded GPX metadata — place
+names are deliberately not invented or reverse-geocoded.
 
 The exporter reuses the main Aurora stylesheet and the same navy / sand / paper
-visual language as the site. The route overlay is drawn into a dedicated canvas
+visual language as the site. The Story layout is the default, and the dark
+footer has a minimum height so the Aurora Voyage Atlas strip remains a deliberate
+part of the composition instead of collapsing into a thin text band. The route overlay is drawn into a dedicated canvas
 above the Leaflet tiles and the same card DOM is used for both preview and PNG
 capture. This avoids the
 SVG-transform offset that can occur when html2canvas captures Leaflet vector
