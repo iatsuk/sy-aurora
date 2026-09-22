@@ -532,9 +532,10 @@
       const item = visibleMedia[currentIndex];
       if (!item || !dialog || !stage) return;
       const full = item.full || item.file;
-      stage.innerHTML = item.type === 'video'
+      const media = item.type === 'video'
         ? `<video src="${encodeURI(item.file)}" controls autoplay playsinline></video>`
         : `<img src="${encodeURI(full)}" alt="${escapeAttr(item.alt || item.title || 'Aurora')}" />`;
+      stage.innerHTML = `<div class="lightbox-media">${media}</div>`;
       caption.textContent = [item.title, item.album, item.caption].filter(Boolean).join(' · ');
       if (!dialog.open) dialog.showModal();
     }
