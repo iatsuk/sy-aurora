@@ -15,6 +15,14 @@
   const status = document.querySelector('[data-status]');
   const download = document.querySelector('[data-download]');
 
+  const t = (value) => window.AURORA_I18N?.translate?.(String(value)) || String(value);
+  const siteLanguage = () => document.documentElement.lang.toLowerCase().split('-')[0];
+  const siteLocale = () => {
+    if (window.AURORA_I18N?.locale) return window.AURORA_I18N.locale;
+    const language = siteLanguage();
+    return language === 'de' ? 'de-DE' : language === 'ru' ? 'ru-RU' : 'en-GB';
+  };
+
   if (!card || !mapNode || !contextMapNode || !trackSelect || !rangeStart || !rangeEnd || !window.L) return;
 
   const formats = {
@@ -98,7 +106,8 @@
       if (!response.ok) throw new Error(`tracks.geojson: ${response.status}`);
       return response.json();
     })
-    .then((data) => {
+    .then(async (data) => {
+      await window.AURORA_I18N?.ready;
       features = (Array.isArray(data.features) ? data.features : [])
         .filter((feature) => ['LineString', 'MultiLineString'].includes(feature.geometry?.type));
       if (!features.length) throw new Error('No GPX tracks have been published yet.');
@@ -120,15 +129,15 @@
 
       if (window.html2canvas) {
         download.disabled = false;
-        status.textContent = 'Ready to export.';
+        status.textContent = t('Ready to export.');
       } else {
-        status.textContent = 'The PNG exporter could not be loaded.';
+        status.textContent = t('The PNG exporter could not be loaded.');
       }
     })
     .catch((error) => {
-      status.textContent = error.message;
-      title.textContent = 'No voyage available';
-      meta.textContent = 'Add a GPX file and rebuild data/tracks.geojson';
+      status.textContent = t(error.message);
+      title.textContent = t('No voyage available');
+      meta.textContent = t('Add a GPX file and rebuild data/tracks.geojson');
     });
 
   trackSelect.addEventListener('change', () => {
@@ -162,7 +171,7 @@
   download.addEventListener('click', async () => {
     if (!window.html2canvas || !activeSelection.length) return;
     download.disabled = true;
-    status.textContent = 'Preparing map tiles and typography…';
+    status.textContent = t('Preparing map tiles and typography…');
 
     try {
       await document.fonts?.ready;
@@ -201,9 +210,9 @@
       const objectUrl = link.href;
       link.remove();
       window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
-      status.textContent = `Downloaded ${format.width} × ${format.height} PNG.`;
+      status.textContent = `${t('Downloaded')} ${format.width} × ${format.height} PNG.`;
     } catch (error) {
-      status.textContent = `Export failed: ${error.message}`;
+      status.textContent = `${t('Export failed')}: ${t(error.message)}`;
     } finally {
       download.disabled = false;
     }
@@ -236,11 +245,11 @@
     voyageGroups.forEach((entries) => {
       const first = entries[0]?.feature;
       const group = document.createElement('optgroup');
-      group.label = first?.properties?.voyage_title || first?.properties?.year || 'Other voyages';
+      group.label = t(first?.properties?.voyage_title || first?.properties?.year || 'Other voyages');
       entries.forEach(({ feature, index }) => {
         const option = document.createElement('option');
         option.value = String(index);
-        option.textContent = feature.properties?.name || `Voyage ${index + 1}`;
+        option.textContent = t(feature.properties?.name || `Voyage ${index + 1}`);
         group.appendChild(option);
       });
       trackSelect.appendChild(group);
@@ -254,7 +263,7 @@
       entries.forEach(({ feature, index: featureIndex }) => {
         const option = document.createElement('option');
         option.value = String(featureIndex);
-        option.textContent = feature.properties?.name || `Voyage ${featureIndex + 1}`;
+        option.textContent = t(feature.properties?.name || `Voyage ${featureIndex + 1}`);
         select.appendChild(option);
       });
     };
@@ -330,7 +339,7 @@
 
   function updateMapCaptions() {
     if (!detailCaption) return;
-    detailCaption.textContent = activeScope === 'range' ? 'Current range' : 'Current passage';
+    detailCaption.textContent = t(activeScope === 'range' ? 'Current range' : 'Current passage');
   }
 
   function normalizeRange(changed) {
@@ -365,10 +374,10 @@
     title.textContent = summary.title;
     meta.textContent = [
       summary.dateRange,
-      summary.startTime ? `Start ${summary.startTime}` : '',
+      summary.startTime ? `${t('Start')} ${summary.startTime}` : '',
       Number.isFinite(summary.distanceNm) ? `${summary.distanceNm.toFixed(1)} NM` : '',
       Number.isFinite(summary.durationHours) ? formatDuration(summary.durationHours) : '',
-      Number.isFinite(summary.averageKnots) ? `Avg ${summary.averageKnots.toFixed(1)} kn` : ''
+      Number.isFinite(summary.averageKnots) ? `${t('Avg')} ${summary.averageKnots.toFixed(1)} kn` : ''
     ].filter(Boolean).join(' · ');
 
     if (voyageName) voyageName.textContent = summary.footer;
@@ -399,12 +408,12 @@
     let cardTitle = firstProperties.name || 'Voyage';
     if (selection.length > 1 && activeScope === 'voyage') cardTitle = voyageTitle;
     if (selection.length > 1 && activeScope === 'range') {
-      cardTitle = `${shortLegName(firstProperties.name)} – ${shortLegName(lastProperties.name)}`;
+      cardTitle = `${t(shortLegName(firstProperties.name))} – ${t(shortLegName(lastProperties.name))}`;
     }
 
     return {
-      title: cardTitle,
-      footer: selection.length > 1 ? `${voyageTitle} · ${selection.length} passages` : voyageTitle,
+      title: t(cardTitle),
+      footer: selection.length > 1 ? t(`${voyageTitle} · ${selection.length} passages`) : t(voyageTitle),
       dateRange: formatDateRange(
         firstProperties.start,
         lastProperties.end,
@@ -612,7 +621,7 @@
       const startBox = drawContextCallout(
         context,
         firstEndpoints.start,
-        'START',
+        t('START'),
         formatLocalDateTime(firstProperties.start, firstProperties.start_timezone),
         contextColor,
         false,
@@ -631,7 +640,7 @@
       const endBox = drawContextCallout(
         context,
         lastEndpoints.end,
-        `${currentPassage} · ${cumulativeDistance.toFixed(1)} NM total`,
+        `${currentPassage} · ${cumulativeDistance.toFixed(1)} NM ${t('total')}`,
         formatLocalDateTime(lastProperties.end, lastProperties.end_timezone),
         routeColor,
         true,
@@ -888,7 +897,7 @@
     const startBox = drawBoundaryCallout(
       context,
       firstEndpoints.start,
-      'START',
+      t('START'),
       formatLocalDateTime(firstProperties.start, firstProperties.start_timezone),
       { filled: false },
       occupiedBoxes
@@ -910,8 +919,8 @@
         const stopBox = drawBoundaryCallout(
           context,
           endpoints.end,
-          `${currentPassage} · ${cumulativeDistance.toFixed(1)} NM total`,
-          stopDuration ? `Stopover ${stopDuration}` : 'Stopover',
+          `${currentPassage} · ${cumulativeDistance.toFixed(1)} NM ${t('total')}`,
+          stopDuration ? `${t('Stopover')} ${stopDuration}` : t('Stopover'),
           { filled: true },
           occupiedBoxes
         );
@@ -926,7 +935,7 @@
     const finishBox = drawBoundaryCallout(
       context,
       lastEndpoints.end,
-      `FINISH · ${cumulativeDistance.toFixed(1)} NM`,
+      `${t('FINISH')} · ${cumulativeDistance.toFixed(1)} NM`,
       formatLocalDateTime(lastProperties.end, lastProperties.end_timezone),
       { filled: true },
       occupiedBoxes
@@ -1108,7 +1117,12 @@
     const totalMinutes = Math.round(hours * 60);
     const wholeHours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
-    return wholeHours ? `${wholeHours}h${minutes ? ` ${minutes}m` : ''}` : `${minutes}m`;
+    const language = siteLanguage();
+    const hourUnit = language === 'ru' ? 'ч' : 'h';
+    const minuteUnit = language === 'ru' ? 'мин' : 'm';
+    return wholeHours
+      ? `${wholeHours}${hourUnit}${minutes ? ` ${minutes}${minuteUnit}` : ''}`
+      : `${minutes}${minuteUnit}`;
   }
 
   function formatStopDuration(end, nextStart) {
@@ -1121,10 +1135,14 @@
     const remainder = totalMinutes - days * 1440;
     const hours = Math.floor(remainder / 60);
     const minutes = remainder % 60;
+    const language = siteLanguage();
+    const dayUnit = language === 'de' ? 'T' : language === 'ru' ? 'д' : 'd';
+    const hourUnit = language === 'ru' ? 'ч' : 'h';
+    const minuteUnit = language === 'ru' ? 'мин' : 'm';
 
-    if (days) return `${days}d${hours ? ` ${hours}h` : ''}`;
-    if (hours) return `${hours}h${minutes ? ` ${minutes}m` : ''}`;
-    return `${minutes}m`;
+    if (days) return `${days}${dayUnit}${hours ? ` ${hours}${hourUnit}` : ''}`;
+    if (hours) return `${hours}${hourUnit}${minutes ? ` ${minutes}${minuteUnit}` : ''}`;
+    return `${minutes}${minuteUnit}`;
   }
 
   function drawEndpoint(context, coordinate, filled, radius = 6) {
@@ -1331,7 +1349,7 @@
   function safeTimeZone(value) {
     if (!value) return 'UTC';
     try {
-      new Intl.DateTimeFormat('en-GB', { timeZone: value }).format(new Date());
+      new Intl.DateTimeFormat(siteLocale(), { timeZone: value }).format(new Date());
       return value;
     } catch {
       return 'UTC';
@@ -1341,7 +1359,7 @@
   function formatDateRange(start, end, startTimeZone, endTimeZone) {
     const format = (value, timeZone) => {
       const date = new Date(value);
-      return Number.isNaN(date.valueOf()) ? '' : new Intl.DateTimeFormat('en-GB', {
+      return Number.isNaN(date.valueOf()) ? '' : new Intl.DateTimeFormat(siteLocale(), {
         day: '2-digit',
         month: 'short',
         year: 'numeric',
@@ -1357,7 +1375,7 @@
     const date = new Date(value);
     if (Number.isNaN(date.valueOf())) return '';
     const zone = safeTimeZone(timeZone);
-    const formatter = new Intl.DateTimeFormat('en-GB', {
+    const formatter = new Intl.DateTimeFormat(siteLocale(), {
       hour: '2-digit',
       minute: '2-digit',
       hourCycle: 'h23',
@@ -1370,7 +1388,7 @@
   function formatLocalDateTime(value, timeZone) {
     const date = new Date(value);
     if (Number.isNaN(date.valueOf())) return '';
-    return new Intl.DateTimeFormat('en-GB', {
+    return new Intl.DateTimeFormat(siteLocale(), {
       day: '2-digit',
       month: 'short',
       hour: '2-digit',
@@ -1384,14 +1402,14 @@
   function formatDayMark(mark) {
     if (mark?.local_date) {
       const date = new Date(`${mark.local_date}T12:00:00Z`);
-      return Number.isNaN(date.valueOf()) ? mark.local_date : new Intl.DateTimeFormat('en-GB', {
+      return Number.isNaN(date.valueOf()) ? mark.local_date : new Intl.DateTimeFormat(siteLocale(), {
         day: '2-digit',
         month: 'short',
         timeZone: 'UTC'
       }).format(date);
     }
     const date = new Date(mark?.time);
-    return Number.isNaN(date.valueOf()) ? '' : new Intl.DateTimeFormat('en-GB', {
+    return Number.isNaN(date.valueOf()) ? '' : new Intl.DateTimeFormat(siteLocale(), {
       day: '2-digit',
       month: 'short',
       timeZone: safeTimeZone(mark?.timezone)
@@ -1403,6 +1421,13 @@
     const totalMinutes = Math.round(hours * 60);
     const wholeHours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
+    const language = siteLanguage();
+    if (language === 'de') {
+      return wholeHours ? `${wholeHours} Std.${minutes ? ` ${minutes} Min.` : ''}` : `${minutes} Min.`;
+    }
+    if (language === 'ru') {
+      return wholeHours ? `${wholeHours} ч${minutes ? ` ${minutes} мин` : ''}` : `${minutes} мин`;
+    }
     return wholeHours ? `${wholeHours} h${minutes ? ` ${minutes} min` : ''}` : `${minutes} min`;
   }
 

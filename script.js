@@ -3,6 +3,12 @@
   const menuButton = document.querySelector('[data-menu-button]');
   const nav = document.querySelector('[data-nav]');
 
+  const siteLocale = () => {
+    if (window.AURORA_I18N?.locale) return window.AURORA_I18N.locale;
+    const language = document.documentElement.lang.toLowerCase().split('-')[0];
+    return language === 'de' ? 'de-DE' : language === 'ru' ? 'ru-RU' : 'en-GB';
+  };
+
   const onScroll = () => header?.classList.toggle('scrolled', window.scrollY > 28);
   onScroll();
   window.addEventListener('scroll', onScroll, { passive: true });
@@ -121,18 +127,25 @@
     const formatDate = (value) => {
       if (!value) return '';
       const date = new Date(value);
-      return Number.isNaN(date.valueOf()) ? String(value) : new Intl.DateTimeFormat('en-GB', {
+      return Number.isNaN(date.valueOf()) ? String(value) : new Intl.DateTimeFormat(siteLocale(), {
         day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC'
       }).format(date);
     };
     const formatDistance = (distance) => Number.isFinite(distance)
-      ? `${new Intl.NumberFormat('en-GB', { maximumFractionDigits: 1 }).format(distance)} nm`
+      ? `${new Intl.NumberFormat(siteLocale(), { maximumFractionDigits: 1 }).format(distance)} nm`
       : '';
     const formatDuration = (hours) => {
       if (!Number.isFinite(hours) || hours < 0) return '';
       const minutes = Math.round(hours * 60);
       const wholeHours = Math.floor(minutes / 60);
       const remainder = minutes % 60;
+      const language = document.documentElement.lang.toLowerCase().split('-')[0];
+      if (language === 'de') {
+        return wholeHours ? `${wholeHours} Std.${remainder ? ` ${remainder} Min.` : ''}` : `${remainder} Min.`;
+      }
+      if (language === 'ru') {
+        return wholeHours ? `${wholeHours} ч${remainder ? ` ${remainder} мин` : ''}` : `${remainder} мин`;
+      }
       return wholeHours ? `${wholeHours} h${remainder ? ` ${remainder} min` : ''}` : `${remainder} min`;
     };
     const humanize = (value) => String(value || 'Voyages')
@@ -197,7 +210,7 @@
       (feature.properties?.day_marks || []).forEach((mark) => {
         if (!Array.isArray(mark.coordinates)) return;
         const label = mark.local_date
-          ? new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', timeZone: 'UTC' })
+          ? new Intl.DateTimeFormat(siteLocale(), { day: '2-digit', month: 'short', timeZone: 'UTC' })
               .format(new Date(`${mark.local_date}T12:00:00Z`))
           : formatDate(mark.time);
         L.circleMarker([mark.coordinates[1], mark.coordinates[0]], {
@@ -557,7 +570,7 @@
     if (!start) return '';
     const format = (value) => {
       const date = new Date(value);
-      return Number.isNaN(date.valueOf()) ? value : new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(date);
+      return Number.isNaN(date.valueOf()) ? value : new Intl.DateTimeFormat(siteLocale(), { day: '2-digit', month: 'short', year: 'numeric', timeZone: 'UTC' }).format(date);
     };
     const a = format(start);
     const b = end ? format(end) : '';
