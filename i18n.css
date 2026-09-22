@@ -1,0 +1,122 @@
+.language-switcher {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  margin-left: auto;
+  margin-right: -.5rem;
+}
+
+.language-switcher::after {
+  content: "⌄";
+  position: absolute;
+  right: 11px;
+  top: 50%;
+  transform: translateY(-56%);
+  pointer-events: none;
+  color: rgba(255,255,255,.62);
+  font-size: 13px;
+}
+
+.language-switcher select {
+  min-height: 36px;
+  padding: 0 30px 0 12px;
+  border: 1px solid rgba(255,255,255,.24);
+  border-radius: 999px;
+  appearance: none;
+  background: rgba(7,27,36,.34);
+  color: var(--white);
+  cursor: pointer;
+  font: 700 10px/1 var(--sans);
+  letter-spacing: .04em;
+  backdrop-filter: blur(8px);
+}
+
+.site-header.scrolled .language-switcher select {
+  background: rgba(255,255,255,.08);
+}
+
+.language-switcher select:focus-visible {
+  outline: 3px solid rgba(214,183,122,.24);
+  outline-offset: 2px;
+  border-color: var(--sand);
+}
+
+.language-switcher option {
+  background: var(--navy);
+  color: var(--white);
+}
+
+.export-toolbar .language-switcher {
+  display: inline-flex;
+  align-self: end;
+  margin: 0;
+  gap: 0;
+  color: inherit;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.export-toolbar .language-switcher select {
+  min-width: 76px;
+  min-height: 2.55rem;
+  width: auto;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+html[data-language="de"] .hero h1,
+html[data-language="ru"] .hero h1 {
+  font-size: clamp(3rem, 5.5vw, 5.9rem);
+  max-width: 16ch;
+}
+
+html[data-language="de"] .section-heading h2,
+html[data-language="ru"] .section-heading h2 {
+  max-width: 22ch;
+}
+
+@media (max-width: 1100px) {
+  .site-header {
+    gap: 1rem;
+  }
+
+  .language-switcher {
+    margin-left: auto;
+    margin-right: .1rem;
+  }
+
+  .language-switcher select {
+    width: 76px;
+    padding-left: 10px;
+    padding-right: 24px;
+    text-overflow: ellipsis;
+  }
+
+  .language-switcher::after {
+    right: 8px;
+  }
+}
+
+@media (max-width: 700px) {
+  .language-switcher select {
+    width: 58px;
+    min-height: 34px;
+    font-size: 9px;
+  }
+
+  html[data-language="de"] .hero h1,
+  html[data-language="ru"] .hero h1 {
+    font-size: clamp(2.6rem, 12.2vw, 4.2rem);
+  }
+}
