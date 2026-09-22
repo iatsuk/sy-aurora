@@ -16,8 +16,8 @@
       <stop offset="1" stop-color="#15323c"/>
     </linearGradient>
 
-    <path id="hullProfile" d="M 172 1368
-       L 192 1386
+    <path id="hullProfile" d="M 193 1384
+       L 193 1384
        C 257 1391, 357 1395, 475 1394
        L 493 1305
        L 780 1307
@@ -35,9 +35,9 @@
        C 669 1644, 548 1648, 439 1643
        C 398 1640, 365 1627, 336 1609
        C 295 1585, 260 1557, 237 1522
-       C 218 1492, 207 1458, 202 1433
-       C 196 1408, 172 1400, 172 1380
-       L 172 1368 Z"/>
+       C 218 1492, 207 1458, 200 1433
+       C 193 1408, 190 1400, 193 1384
+       L 193 1384 Z"/>
     <clipPath id="hullClip">
       <use href="#hullProfile"/>
     </clipPath>
@@ -59,7 +59,7 @@
   <use href="#hullProfile" fill="none" stroke="#f0e7d4" stroke-width="4" stroke-linejoin="round"/>
 
   <!-- Subtle boot-top used only to separate hull and underwater body on the website. -->
-  <path d="M 206 1460 C 370 1466, 560 1466, 742 1459 C 906 1453, 1046 1440, 1157 1427"
+  <path d="M 210 1460 C 370 1466, 560 1466, 742 1459 C 906 1453, 1046 1440, 1157 1427"
         fill="none" stroke="#d6b77a" stroke-width="3" stroke-linecap="round" opacity="0.72"/>
 
   <!-- Original engineering cue at the keel / rudder junction. -->
