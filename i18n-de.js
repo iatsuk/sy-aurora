@@ -264,6 +264,12 @@ Object.assign(window.AURORA_TRANSLATIONS_DE ||= {}, {
   "START": "START",
   "FINISH": "ZIEL",
   "Avg": "Ø",
-  "total": "gesamt"
-
+  "total": "gesamt",
+  "Navigation, communications and onboard network": "Navigation, Kommunikation und Bordnetzwerk",
+  "Garmin ECHOMAP Plus 72sv chartplotter installed with transducer.": "Garmin ECHOMAP Plus 72sv Kartenplotter mit Geber installiert.",
+  "em-trak B954 Class B AIS transceiver installed.": "em-trak B954 AIS-Transceiver der Klasse B installiert.",
+  "Nexus NX2500 fixed VHF radio installed.": "Fest eingebautes Nexus NX2500 UKW-Funkgerät installiert.",
+  "NMEA 2000 backbone installed for onboard instrument networking.": "NMEA-2000-Backbone zur Vernetzung der Bordinstrumente installiert.",
+  "B&G WS310 wind sensor installed and integrated into the NMEA 2000 network.": "B&G WS310 Windsensor installiert und in das NMEA-2000-Netzwerk integriert.",
+  "Starlink installed for onboard internet connectivity.": "Starlink für die Internetverbindung an Bord installiert."
 });
