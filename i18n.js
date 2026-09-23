@@ -3,8 +3,8 @@
   const storageKey = 'aurora-language';
   const languageNames = { en: 'English', de: 'Deutsch', ru: 'Русский' };
   const translationFiles = {
-    de: ['i18n-de.js'],
-    ru: ['i18n-ru.js']
+    de: ['i18n-de.js?v=20260923-1'],
+    ru: ['i18n-ru.js?v=20260923-1']
   };
 
   const normalizeLanguage = (value) => {

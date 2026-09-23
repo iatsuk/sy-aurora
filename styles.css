@@ -133,6 +133,21 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
 .current-specs span, .current-specs small { display: block; font-size: .62rem; color: #72858a; text-transform: uppercase; letter-spacing: .08em; }
 .current-specs strong { display: block; margin: .5rem 0; font: 1rem var(--serif); color: var(--navy); }
 
+.why-aurora-section { padding-top: clamp(4.5rem, 8vw, 7.5rem); padding-bottom: clamp(4.5rem, 8vw, 7.5rem); }
+.why-aurora-grid { display: grid; grid-template-columns: .82fr 1.3fr 1fr; gap: 1rem; align-items: stretch; }
+.why-card { border: 1px solid var(--line); border-radius: 1.4rem; padding: clamp(1.4rem, 2.8vw, 2.4rem); background: rgba(255,255,255,.4); }
+.why-card-equipment { background: var(--navy); border-color: transparent; color: var(--white); }
+.why-index { display: inline-block; margin-bottom: 2rem; color: var(--teal); font-size: .68rem; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; }
+.why-card-equipment .why-index { color: var(--sand-soft); }
+.why-card h3 { margin: 0 0 .9rem; font: 1.65rem/1.15 var(--serif); color: var(--navy); }
+.why-card-equipment h3 { color: var(--sand-soft); }
+.why-card p { margin: 0 0 1.2rem; color: #53666d; }
+.why-card-equipment p { color: rgba(255,255,255,.68); }
+.why-card ul { margin: 0; padding-left: 1.1rem; color: #52666d; }
+.why-card-equipment ul { color: rgba(255,255,255,.76); }
+.why-card li + li { margin-top: .5rem; }
+.why-aurora-note { max-width: 1020px; margin: 2.5rem 0 0; font: clamp(1.35rem, 2vw, 1.8rem)/1.45 var(--serif); color: var(--navy); }
+
 .refit-section { width: 100%; max-width: none; background: #e7e0d3; padding-left: max(1rem, calc((100vw - 1440px)/2 + 4rem)); padding-right: max(1rem, calc((100vw - 1440px)/2 + 4rem)); }
 .timeline { max-width: 1120px; }
 .timeline-year { display: grid; grid-template-columns: 9rem 1fr; gap: 2.5rem; padding: 0 0 3rem; }
@@ -216,6 +231,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fo
   .hero-visual { min-height: 470px; }
   .moon { width: 280px; }
   .story-grid { grid-template-columns: 1fr 1fr; }
+  .why-aurora-grid { grid-template-columns: 1fr; }
   .philosophy-grid { grid-template-columns: 1fr 1fr; }
   .specs-card, .transition-layout, .voyage-layout, .live-layout { grid-template-columns: 1fr; }
   .identity-grid { grid-template-columns: 1fr 1fr; }
