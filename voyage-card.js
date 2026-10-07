@@ -179,7 +179,7 @@
       const format = formats[activeLayout];
       const rect = card.getBoundingClientRect();
       const scale = format.width / rect.width;
-      const titleCanvas = renderTitleCanvas(scale);
+      const textCanvas = renderCardTextCanvas(scale);
 
       const captured = await window.html2canvas(card, {
         backgroundColor: navyColor,
@@ -197,9 +197,14 @@
             position: 'fixed', left: '0', top: '0', margin: '0',
             width: `${rect.width}px`, height: `${rect.height}px`
           });
-          const clonedTitle = clonedDocument.querySelector('[data-card-title]');
-          clonedTitle.style.height = titleCanvas.style.height;
-          clonedTitle.replaceChildren(titleCanvas);
+          const walker = clonedDocument.createTreeWalker(clonedCard, NodeFilter.SHOW_TEXT);
+          while (walker.nextNode()) {
+            if (!walker.currentNode.textContent.trim()) continue;
+            const parent = walker.currentNode.parentElement;
+            parent.style.color = 'transparent';
+            parent.style.textShadow = 'none';
+          }
+          clonedCard.append(textCanvas);
         }
       });
 
@@ -230,48 +235,74 @@
     }
   });
 
-  function renderTitleCanvas(scale) {
-    const rect = title.getBoundingClientRect();
-    const style = getComputedStyle(title);
+  function renderCardTextCanvas(scale) {
+    const rect = card.getBoundingClientRect();
     const canvas = document.createElement('canvas');
     canvas.width = Math.ceil(rect.width * scale);
     canvas.height = Math.ceil(rect.height * scale);
     Object.assign(canvas.style, {
-      display: 'block', width: `${rect.width}px`, height: `${rect.height}px`
+      position: 'absolute', inset: '0', zIndex: '2000', pointerEvents: 'none',
+      width: `${rect.width}px`, height: `${rect.height}px`
     });
     const context = canvas.getContext('2d');
     context.scale(scale, scale);
-    context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
-    context.fillStyle = style.color;
     context.textBaseline = 'alphabetic';
-    context.letterSpacing = style.letterSpacing;
-
-    // Keep the browser's actual line breaks, including Cyrillic fallback glyphs.
-    // html2canvas's Latin font probe gives these titles the wrong baseline.
-    const textNode = title.firstChild;
-    if (!textNode) return canvas;
-    const text = textNode.textContent;
+    const walker = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
     const range = document.createRange();
-    const lines = [];
-    for (let index = 0; index < text.length; index += 1) {
-      range.setStart(textNode, index);
-      range.setEnd(textNode, index + 1);
-      const character = range.getBoundingClientRect();
-      let line = lines[lines.length - 1];
-      if (!line || Math.abs(character.top - line.top) > 1) {
-        line = { text: '', top: character.top, left: character.left - rect.left };
-        lines.push(line);
+
+    // Draw every DOM label with native font metrics, including map captions,
+    // metadata, footer and attribution. Leave the cloned text in the layout.
+    while (walker.nextNode()) {
+      const node = walker.currentNode;
+      if (!node.textContent.trim()) continue;
+      const parent = node.parentElement;
+      const style = getComputedStyle(parent);
+      if (style.visibility !== 'visible') continue;
+      range.selectNodeContents(node);
+      if (!range.getBoundingClientRect().height) continue;
+
+      context.save();
+      for (let ancestor = parent; ancestor; ancestor = ancestor.parentElement) {
+        const ancestorStyle = getComputedStyle(ancestor);
+        const clipX = /hidden|clip/.test(ancestorStyle.overflowX);
+        const clipY = /hidden|clip/.test(ancestorStyle.overflowY);
+        if (clipX || clipY) {
+          const bounds = ancestor.getBoundingClientRect();
+          context.beginPath();
+          context.rect(clipX ? bounds.left - rect.left : 0,
+            clipY ? bounds.top - rect.top : 0,
+            clipX ? bounds.width : rect.width, clipY ? bounds.height : rect.height);
+          context.clip();
+        }
+        if (ancestor === card) break;
       }
-      line.text += text[index];
+      context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+      context.fillStyle = style.color;
+      context.letterSpacing = style.letterSpacing === 'normal' ? '0px' : style.letterSpacing;
+      const lines = [];
+      for (let index = 0; index < node.textContent.length; index += 1) {
+        range.setStart(node, index);
+        range.setEnd(node, index + 1);
+        const character = range.getBoundingClientRect();
+        if (!character.height) continue;
+        let line = lines[lines.length - 1];
+        if (!line || Math.abs(character.top - line.top) > 1) {
+          line = { text: '', top: character.top, bottom: character.bottom,
+            left: character.left - rect.left };
+          lines.push(line);
+        }
+        line.text += node.textContent[index];
+      }
+      for (const line of lines) {
+        let text = line.text;
+        if (style.textTransform === 'uppercase') text = text.toLocaleUpperCase(siteLocale());
+        if (style.textTransform === 'lowercase') text = text.toLocaleLowerCase(siteLocale());
+        const metrics = context.measureText(text);
+        const descent = metrics.fontBoundingBoxDescent ?? metrics.actualBoundingBoxDescent;
+        context.fillText(text, line.left, line.bottom - rect.top - descent);
+      }
+      context.restore();
     }
-    const lineHeight = parseFloat(style.lineHeight);
-    lines.forEach((line, index) => {
-      const metrics = context.measureText(line.text);
-      const ascent = metrics.fontBoundingBoxAscent ?? metrics.actualBoundingBoxAscent;
-      const descent = metrics.fontBoundingBoxDescent ?? metrics.actualBoundingBoxDescent;
-      const baseline = index * lineHeight + (lineHeight + ascent - descent) / 2;
-      context.fillText(line.text, line.left, baseline);
-    });
     return canvas;
   }
 
