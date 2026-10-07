@@ -179,16 +179,28 @@
       const format = formats[activeLayout];
       const rect = card.getBoundingClientRect();
       const scale = format.width / rect.width;
+      const titleCanvas = renderTitleCanvas(scale);
 
       const captured = await window.html2canvas(card, {
-        backgroundColor: paperColor,
+        backgroundColor: navyColor,
         logging: false,
         scale,
         useCORS: true,
         width: rect.width,
         height: rect.height,
         scrollX: 0,
-        scrollY: -window.scrollY
+        scrollY: 0,
+        onclone: (clonedDocument) => {
+          // Capture at an integer origin to avoid a light antialiased edge.
+          const clonedCard = clonedDocument.querySelector('[data-card]');
+          Object.assign(clonedCard.style, {
+            position: 'fixed', left: '0', top: '0', margin: '0',
+            width: `${rect.width}px`, height: `${rect.height}px`
+          });
+          const clonedTitle = clonedDocument.querySelector('[data-card-title]');
+          clonedTitle.style.height = titleCanvas.style.height;
+          clonedTitle.replaceChildren(titleCanvas);
+        }
       });
 
       const output = document.createElement('canvas');
@@ -217,6 +229,51 @@
       download.disabled = false;
     }
   });
+
+  function renderTitleCanvas(scale) {
+    const rect = title.getBoundingClientRect();
+    const style = getComputedStyle(title);
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.ceil(rect.width * scale);
+    canvas.height = Math.ceil(rect.height * scale);
+    Object.assign(canvas.style, {
+      display: 'block', width: `${rect.width}px`, height: `${rect.height}px`
+    });
+    const context = canvas.getContext('2d');
+    context.scale(scale, scale);
+    context.font = `${style.fontStyle} ${style.fontWeight} ${style.fontSize} ${style.fontFamily}`;
+    context.fillStyle = style.color;
+    context.textBaseline = 'alphabetic';
+    context.letterSpacing = style.letterSpacing;
+
+    // Keep the browser's actual line breaks, including Cyrillic fallback glyphs.
+    // html2canvas's Latin font probe gives these titles the wrong baseline.
+    const textNode = title.firstChild;
+    if (!textNode) return canvas;
+    const text = textNode.textContent;
+    const range = document.createRange();
+    const lines = [];
+    for (let index = 0; index < text.length; index += 1) {
+      range.setStart(textNode, index);
+      range.setEnd(textNode, index + 1);
+      const character = range.getBoundingClientRect();
+      let line = lines[lines.length - 1];
+      if (!line || Math.abs(character.top - line.top) > 1) {
+        line = { text: '', top: character.top, left: character.left - rect.left };
+        lines.push(line);
+      }
+      line.text += text[index];
+    }
+    const lineHeight = parseFloat(style.lineHeight);
+    lines.forEach((line, index) => {
+      const metrics = context.measureText(line.text);
+      const ascent = metrics.fontBoundingBoxAscent ?? metrics.actualBoundingBoxAscent;
+      const descent = metrics.fontBoundingBoxDescent ?? metrics.actualBoundingBoxDescent;
+      const baseline = index * lineHeight + (lineHeight + ascent - descent) / 2;
+      context.fillText(line.text, line.left, baseline);
+    });
+    return canvas;
+  }
 
   function buildVoyageGroups() {
     voyageGroups = new Map();
