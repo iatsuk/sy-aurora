@@ -237,5 +237,61 @@ window.AURORA_MEDIA = [
     "width": 2558,
     "height": 3411,
     "portrait": true
+  },
+  {
+    "id": "08-001-img-9035-582e17f2",
+    "type": "image",
+    "thumbnail": "media/gallery/08-hull-underwater/08-001-img-9035-582e17f2-thumb.webp",
+    "full": "media/gallery/08-hull-underwater/08-001-img-9035-582e17f2-full.webp",
+    "file": "media/gallery/08-hull-underwater/08-001-img-9035-582e17f2-full.webp",
+    "category": "Hull and underwater",
+    "album": null,
+    "title": "Hull and underwater 1",
+    "alt": "Aurora — Hull and underwater 1",
+    "width": 1536,
+    "height": 2048,
+    "portrait": true
+  },
+  {
+    "id": "08-002-img-9037-2917e0b6",
+    "type": "image",
+    "thumbnail": "media/gallery/08-hull-underwater/08-002-img-9037-2917e0b6-thumb.webp",
+    "full": "media/gallery/08-hull-underwater/08-002-img-9037-2917e0b6-full.webp",
+    "file": "media/gallery/08-hull-underwater/08-002-img-9037-2917e0b6-full.webp",
+    "category": "Hull and underwater",
+    "album": null,
+    "title": "Hull and underwater 2",
+    "alt": "Aurora — Hull and underwater 2",
+    "width": 1536,
+    "height": 2048,
+    "portrait": true
+  },
+  {
+    "id": "08-003-img-9038-6b4154f3",
+    "type": "image",
+    "thumbnail": "media/gallery/08-hull-underwater/08-003-img-9038-6b4154f3-thumb.webp",
+    "full": "media/gallery/08-hull-underwater/08-003-img-9038-6b4154f3-full.webp",
+    "file": "media/gallery/08-hull-underwater/08-003-img-9038-6b4154f3-full.webp",
+    "category": "Hull and underwater",
+    "album": null,
+    "title": "Hull and underwater 3",
+    "alt": "Aurora — Hull and underwater 3",
+    "width": 2048,
+    "height": 1536,
+    "portrait": false
+  },
+  {
+    "id": "08-004-img-9039-4cea247d",
+    "type": "image",
+    "thumbnail": "media/gallery/08-hull-underwater/08-004-img-9039-4cea247d-thumb.webp",
+    "full": "media/gallery/08-hull-underwater/08-004-img-9039-4cea247d-full.webp",
+    "file": "media/gallery/08-hull-underwater/08-004-img-9039-4cea247d-full.webp",
+    "category": "Hull and underwater",
+    "album": null,
+    "title": "Hull and underwater 4",
+    "alt": "Aurora — Hull and underwater 4",
+    "width": 1536,
+    "height": 2048,
+    "portrait": true
   }
 ];
