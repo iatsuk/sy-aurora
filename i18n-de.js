@@ -210,6 +210,7 @@ Object.assign(window.AURORA_TRANSLATIONS_DE ||= {}, {
   "Other": "Sonstiges",
   "VIDEO": "VIDEO",
   "Overview": "Übersicht",
+  "At the pontoon": "Am Steg",
   "Underway": "Unterwegs",
   "Deck and cockpit": "Deck und Cockpit",
   "Rig and sails": "Rigg und Segel",

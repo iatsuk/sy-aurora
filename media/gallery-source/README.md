@@ -3,6 +3,11 @@
 This directory is the local staging area for camera originals. Everything here
 except this README is ignored by Git and must be backed up somewhere else.
 
+Dot-prefixed files are retained locally but excluded from gallery builds. The
+first Overview photograph is staged as `01-overview/At-the-pontoon.JPG`, a copy
+of `IMG_8983.JPG`. Its descriptive filename keeps it before `IMG_8790.JPG`.
+The replaced original is preserved as `01-overview/.IMG_8350.JPG`.
+
 Use exactly one of these top-level categories:
 
 1. `01-overview/` — whole-boat views: profile, berth, anchor, hauled out.
