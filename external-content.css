@@ -1,0 +1,14 @@
+/* Optional embeds connect to their provider only after the visitor's choice. */
+.external-content { background: var(--paper, #faf8f2); color: var(--ink, #10232b); }
+.external-content-body { position: relative; display: grid; place-items: center; min-height: 300px; }
+.external-content-notice { max-width: 48ch; padding: 2rem; margin: auto; font-size: .9rem; line-height: 1.7; }
+.external-content-notice[hidden] { display: none; }
+.external-content .external-content-body iframe { position: absolute; inset: 0; display: block; width: 100%; height: 100%; min-height: 0; border: 0; }
+.external-content-controls { display: flex; align-items: center; flex-wrap: wrap; gap: .9rem; padding: 1rem; border-top: 1px solid var(--line, #ccd5d2); }
+.external-content-controls button { padding: .7rem 1rem; border: 1px solid currentColor; border-radius: 4px; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.external-content-controls a { color: inherit; text-decoration: underline; text-underline-offset: .2em; font-size: .8rem; }
+.external-content-controls :is(button,a):focus-visible { outline: 3px solid var(--sun, #f1bb32); outline-offset: 3px; }
+.video-tour-frame.external-content { aspect-ratio: auto; }
+.video-tour-frame.external-content .external-content-body { aspect-ratio: 9 / 16; }
+.footer-legal { display: flex; flex-wrap: wrap; justify-content: center; gap: .6rem; }
+.footer-legal a { text-decoration: underline; text-underline-offset: .2em; }

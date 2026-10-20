@@ -12,15 +12,15 @@
   <link rel="alternate" hreflang="x-default" href="https://sy-aurora.de/">
   <title>S/Y Aurora · Great Dane 28 · Hull 165</title>
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Marcellus&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <link rel="stylesheet" href="assets/fonts/fonts.css">
+  <link rel="stylesheet" href="assets/vendor/leaflet/leaflet.css">
   <link rel="stylesheet" href="styles.css?v=20260923-1">
   <link rel="stylesheet" href="layout-fixes.css">
   <link rel="stylesheet" href="i18n.css?v=20260922-1">
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin="" defer></script>
+  <script src="assets/vendor/leaflet/leaflet.js" defer></script>
   <script src="data/gallery-data.js?v=20261018-2" defer></script>
+  <link rel="stylesheet" href="external-content.css">
+  <script src="external-content.js" defer></script>
   <script src="i18n.js?v=20261018-1" defer></script>
   <script src="script.js?v=20260922-3" defer></script>
 </head>
@@ -92,7 +92,7 @@
       </div>
       <div class="live-layout live-layout-primary">
         <div class="ais-frame reveal">
-          <iframe src="vesselfinder.html" title="Aurora live AIS position via VesselFinder" loading="eager" referrerpolicy="no-referrer-when-downgrade"></iframe>
+          <div class="external-content" data-external-content data-external-src="vesselfinder.html" data-external-service="VesselFinder" data-external-title="Aurora live AIS position via VesselFinder" data-privacy-section="sy-aurora"></div>
           <p class="embed-fallback">If the embedded AIS map is unavailable, open <a href="https://www.vesselfinder.com/vessels/details/218032280" target="_blank" rel="noreferrer">VesselFinder</a> or <a href="https://www.marinetraffic.com/en/ais/details/ships/shipid:8833999/mmsi:218032280/imo:0/vessel:RASSVET" target="_blank" rel="noreferrer">MarineTraffic</a>.</p>
         </div>
         <div class="live-card reveal">
@@ -385,6 +385,7 @@
     <div><strong>S/Y Aurora</strong><span>Great Dane 28 · hull 165 · 1972</span></div>
     <p>A living technical and cruising record of one boat. Built for GitHub Pages, without a backend.</p>
     <a href="#top">Back to top ↑</a>
+      <nav class="footer-legal" aria-label="Legal information" data-i18n-ignore><a data-legal-page="impressum" href="https://deelstuff.com/en/impressum/">Impressum</a><span aria-hidden="true">·</span><a data-legal-page="datenschutz" href="https://deelstuff.com/en/datenschutz/#sy-aurora">Datenschutz</a></nav>
   </footer>
 
   <dialog class="lightbox" data-lightbox>
