@@ -3,6 +3,7 @@
   const endpoints = {
     'deelstuff.com': 'https://stats.deelstuff.com/count',
     'sy-aurora.de': 'https://stats.deelstuff.com/count',
+    'kombuese.deelstuff.com': 'https://stats.deelstuff.com/count',
     'sy-rassvet.com': 'https://stats.deelstuff.com/count',
   };
   const endpoint = endpoints[location.hostname];
@@ -29,7 +30,7 @@
       const source = new URL(canonical?.href || location.href);
       if (source.hostname === location.hostname) pathname = source.pathname;
     } catch { /* Use the current path if a canonical URL is malformed. */ }
-    if (/^\/(?:impressum|datenschutz)\/?$/.test(pathname.replace(/^\/(en|de)\//, '/'))) return;
+    if (/^\/(?:impressum|datenschutz)(?:\/(?:en|de|ru))?\/?$/.test(pathname.replace(/^\/(en|de)\//, '/'))) return;
     const query = new URLSearchParams({ p: "/" + location.hostname + pathname, t: document.title.slice(0, 250), r: referrer, b: '0' });
     const image = new Image();
     image.referrerPolicy = 'origin';
